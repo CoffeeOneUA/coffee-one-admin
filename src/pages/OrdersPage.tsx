@@ -18,6 +18,7 @@ interface Order {
   delivery_address: string | null;
   contact_phone: string;
   notes: string | null;
+  admin_notes: string | null;
   created_at: string;
   order_items: OrderItem[];
   profiles: { full_name: string | null; phone: string | null } | null;
@@ -47,6 +48,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>('all');
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [noteSaving, setNoteSaving] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -59,7 +62,12 @@ export default function OrdersPage() {
       .select('*, order_items(*), profiles(full_name, phone)')
       .order('created_at', { ascending: false });
 
-    if (!error) setOrders(data ?? []);
+    if (!error) {
+      setOrders(data ?? []);
+      const drafts: Record<string, string> = {};
+      for (const o of data ?? []) drafts[o.id] = o.admin_notes ?? '';
+      setNoteDrafts(drafts);
+    }
     setLoading(false);
   }
 
@@ -68,6 +76,18 @@ export default function OrdersPage() {
     if (!error) {
       setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
     }
+  }
+
+  async function saveNote(id: string) {
+    setNoteSaving(id);
+    const text = noteDrafts[id]?.trim() || null;
+    const { error } = await supabase.from('orders').update({ admin_notes: text }).eq('id', id);
+    setNoteSaving(null);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, admin_notes: text } : o)));
   }
 
   function formatDate(dateStr: string) {
@@ -162,6 +182,26 @@ export default function OrdersPage() {
               {order.notes && (
                 <div className="text-[#546070] text-sm mb-3 italic">"{order.notes}"</div>
               )}
+
+              <div className="mb-3">
+                <label className="text-[10px] font-bold text-[#8893A2] uppercase tracking-wide mb-1 block">Примітка менеджера</label>
+                <textarea
+                  value={noteDrafts[order.id] ?? ''}
+                  onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [order.id]: e.target.value }))}
+                  rows={2}
+                  placeholder="Внутрішня примітка — клієнт її не бачить"
+                  className="w-full border border-[#E8EDF4] rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#187FD8] resize-none"
+                />
+                {(noteDrafts[order.id] ?? '') !== (order.admin_notes ?? '') && (
+                  <button
+                    onClick={() => saveNote(order.id)}
+                    disabled={noteSaving === order.id}
+                    className="mt-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#187FD8] text-white hover:bg-[#1169B8] disabled:opacity-50"
+                  >
+                    {noteSaving === order.id ? 'Зберігаємо…' : 'Зберегти примітку'}
+                  </button>
+                )}
+              </div>
 
               <div className="flex gap-2 flex-wrap">
                 {STATUS_FLOW.map((s) => (
