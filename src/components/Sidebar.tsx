@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import logo from '../assets/coffeeone-logo.png';
 
 const NAV_ITEMS = [
   { path: '/', icon: '📊', label: 'Дашборд' },
@@ -85,13 +86,8 @@ export default function Sidebar() {
       {/* Лого */}
       <div className="px-5 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#187FD8] rounded-xl flex items-center justify-center text-lg">
-            ☕
-          </div>
-          <div>
-            <div className="text-white font-bold text-base leading-tight">Coffee One</div>
-            <div className="text-white/40 text-xs">Admin Panel</div>
-          </div>
+          <img src={logo} alt="Coffee One" className="h-9 w-auto" />
+          <div className="text-white/40 text-xs">Admin Panel</div>
         </div>
       </div>
 
