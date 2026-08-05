@@ -59,6 +59,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'blocked'>('all');
+  const [search, setSearch] = useState('');
   const [actionId, setActionId] = useState<string | null>(null);
 
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
@@ -182,7 +183,17 @@ export default function UsersPage() {
     return new Date(dateStr).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
-  const filtered = filter === 'blocked' ? users.filter((u) => u.is_blocked) : users;
+  const normalizedSearch = search.trim().toLowerCase();
+  const searchDigits = search.replace(/\D/g, '');
+  const filtered = users
+    .filter((u) => filter !== 'blocked' || u.is_blocked)
+    .filter((u) => {
+      if (!normalizedSearch) return true;
+      const nameMatch = u.full_name?.toLowerCase().includes(normalizedSearch);
+      const cityMatch = u.city?.toLowerCase().includes(normalizedSearch);
+      const phoneMatch = searchDigits && u.phone?.replace(/\D/g, '').includes(searchDigits);
+      return nameMatch || cityMatch || phoneMatch;
+    });
 
   return (
     <div className="p-8">
@@ -192,6 +203,21 @@ export default function UsersPage() {
           Продавців з рейтингом нижче 4.0 (від 3 оцінок) блокує автоматично. Тут можна розблокувати вручну або
           заблокувати самостійно, редагувати дані клієнта та лишати примітки до його замовлень.
         </p>
+      </div>
+
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative max-w-md w-full">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8893A2]">🔍</span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Пошук за іменем, телефоном або містом…"
+            className="w-full border border-[#E8EDF4] rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+          />
+        </div>
+        {normalizedSearch && (
+          <span className="text-[#8893A2] text-sm font-medium shrink-0">Знайдено: {filtered.length}</span>
+        )}
       </div>
 
       <div className="flex gap-2 mb-6">
@@ -216,8 +242,10 @@ export default function UsersPage() {
       ) : filtered.length === 0 ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="text-5xl mb-3">👥</div>
-            <div className="text-xl font-bold text-[#20303C] mb-2">{filter === 'blocked' ? 'Заблокованих немає' : 'Користувачів немає'}</div>
+            <div className="text-5xl mb-3">{normalizedSearch ? '🔍' : '👥'}</div>
+            <div className="text-xl font-bold text-[#20303C] mb-2">
+              {normalizedSearch ? 'Нічого не знайдено' : filter === 'blocked' ? 'Заблокованих немає' : 'Користувачів немає'}
+            </div>
           </div>
         </div>
       ) : (
