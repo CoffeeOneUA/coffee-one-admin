@@ -126,8 +126,8 @@ export default function OrdersPage() {
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLOR[order.status]}`}>
-                      {STATUS_LABEL[order.status]}
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLOR[order.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                      {STATUS_LABEL[order.status] ?? order.status}
                     </span>
                     <span className="text-xs text-[#8893A2] uppercase tracking-widest font-bold">
                       {order.payment_method === 'requisites' ? 'За реквізитами' : 'WayForPay'}
