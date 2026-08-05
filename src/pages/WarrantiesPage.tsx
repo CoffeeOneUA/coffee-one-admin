@@ -40,6 +40,7 @@ const STATUS_COLOR: Record<Warranty['status'], string> = {
 export default function WarrantiesPage() {
   const [warranties, setWarranties] = useState<Warranty[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchWarranties();
@@ -61,11 +62,36 @@ export default function WarrantiesPage() {
     return new Date(dateStr).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
+  const normalizedSearch = search.trim().toLowerCase();
+  const searchDigits = search.replace(/\D/g, '');
+  const filtered = !normalizedSearch
+    ? warranties
+    : warranties.filter((w) => {
+        const nameMatch = w.client_name?.toLowerCase().includes(normalizedSearch);
+        const phoneMatch = searchDigits && w.client_phone?.replace(/\D/g, '').includes(searchDigits);
+        return nameMatch || phoneMatch;
+      });
+
   return (
     <div className="p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-[#20303C]">Гарантії</h1>
         <p className="text-[#8893A2] mt-1">Активовані гарантії через сканування QR у застосунку</p>
+      </div>
+
+      <div className="flex items-center gap-3 mb-6">
+        <div className="relative max-w-md w-full">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8893A2]">🔍</span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Пошук за прізвищем або номером телефону…"
+            className="w-full border border-[#E8EDF4] rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+          />
+        </div>
+        {normalizedSearch && (
+          <span className="text-[#8893A2] text-sm font-medium shrink-0">Знайдено: {filtered.length}</span>
+        )}
       </div>
 
       {loading ? (
@@ -77,6 +103,14 @@ export default function WarrantiesPage() {
           <div className="text-center">
             <div className="text-5xl mb-3">🛡</div>
             <div className="text-xl font-bold text-[#20303C] mb-2">Гарантій ще немає</div>
+          </div>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-5xl mb-3">🔍</div>
+            <div className="text-xl font-bold text-[#20303C] mb-2">Нічого не знайдено</div>
+            <div className="text-[#8893A2] text-sm">Спробуйте інше прізвище або номер телефону</div>
           </div>
         </div>
       ) : (
@@ -94,7 +128,7 @@ export default function WarrantiesPage() {
               </tr>
             </thead>
             <tbody>
-              {warranties.map((w) => (
+              {filtered.map((w) => (
                 <tr key={w.id} className="border-b border-[#E8EDF4] last:border-0">
                   <td className="px-5 py-4">
                     <div className="font-semibold text-[#20303C]">{w.client_name}</div>
