@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { useAuth, type AdminRole } from '../lib/auth';
 import logo from '../assets/coffeeone-logo.png';
+
+const ROLE_LABEL: Record<AdminRole, string> = {
+  superadmin: 'Суперадмін',
+  admin: 'Адмін',
+  moderator: 'Модератор',
+};
 
 const NAV_ITEMS = [
   { path: '/', icon: '📊', label: 'Дашборд' },
@@ -80,6 +87,12 @@ function useMaintenanceBadge() {
 
 export default function Sidebar() {
   const maintenanceBadge = useMaintenanceBadge();
+  const { admin, signOut } = useAuth();
+
+  const navItems =
+    admin?.role === 'superadmin'
+      ? [...NAV_ITEMS, { path: '/admin-users', icon: '🔑', label: 'Доступи' }]
+      : NAV_ITEMS;
 
   return (
     <aside className="w-60 bg-[#20303C] h-screen flex flex-col fixed left-0 top-0 z-50">
@@ -96,7 +109,7 @@ export default function Sidebar() {
         <div className="text-white/30 text-xs font-bold uppercase tracking-widest px-2 mb-3">
           Головне
         </div>
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
@@ -127,14 +140,21 @@ export default function Sidebar() {
 
       {/* Користувач */}
       <div className="px-3 py-4 border-t border-white/10">
-        <div className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/8 cursor-pointer">
-          <div className="w-8 h-8 rounded-full bg-[#187FD8] flex items-center justify-center text-white font-bold text-sm">
-            А
+        <div className="flex items-center gap-3 px-3 py-2 rounded-xl group">
+          <div className="w-8 h-8 rounded-full bg-[#187FD8] flex items-center justify-center text-white font-bold text-sm shrink-0">
+            {(admin?.full_name || admin?.email || '?').charAt(0).toUpperCase()}
           </div>
-          <div>
-            <div className="text-white text-sm font-semibold">Адмін</div>
-            <div className="text-white/40 text-xs">Суперадмін</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-white text-sm font-semibold truncate">{admin?.full_name || admin?.email || '—'}</div>
+            <div className="text-white/40 text-xs">{admin ? ROLE_LABEL[admin.role] : ''}</div>
           </div>
+          <button
+            onClick={() => signOut()}
+            title="Вийти"
+            className="text-white/40 hover:text-white text-lg shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            ⏻
+          </button>
         </div>
       </div>
     </aside>
