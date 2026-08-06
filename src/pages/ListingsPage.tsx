@@ -47,6 +47,7 @@ const EMPTY_FORM = {
   description: '',
   status: 'approved',
   is_coffee_one_seller: true,
+  safe_payment_enabled: false,
   photos: [] as string[],
 };
 
@@ -124,6 +125,7 @@ export default function ListingsPage() {
       description: l.description ?? '',
       status: l.status ?? 'approved',
       is_coffee_one_seller: !!l.is_coffee_one_seller,
+      safe_payment_enabled: !!l.safe_payment_enabled,
       photos: l.photos ?? [],
     });
     setModalOpen(true);
@@ -184,6 +186,7 @@ export default function ListingsPage() {
       description: form.description.trim(),
       status: form.status,
       is_coffee_one_seller: form.is_coffee_one_seller,
+      safe_payment_enabled: form.safe_payment_enabled,
       photos: form.photos,
     };
 
@@ -430,6 +433,16 @@ export default function ListingsPage() {
                   <div className="text-[#8893A2] text-xs mt-0.5">Показується зверху фото на картці оголошення</div>
                 </div>
                 <Toggle on={form.is_coffee_one_seller} onChange={(v) => set('is_coffee_one_seller', v)} />
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
+                <div>
+                  <div className="text-sm font-semibold text-[#20303C]">🔒 Позначка «Безпечна оплата»</div>
+                  <div className="text-[#8893A2] text-xs mt-0.5">
+                    Бейдж на картці оголошення. Саму кнопку «Купити з безпечною доставкою» бачать усі покупці незалежно від цього — покупець вмикає й оплачує її сам.
+                  </div>
+                </div>
+                <Toggle on={form.safe_payment_enabled} onChange={(v) => set('safe_payment_enabled', v)} />
               </div>
             </div>
 
