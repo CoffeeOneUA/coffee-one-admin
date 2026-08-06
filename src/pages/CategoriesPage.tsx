@@ -6,6 +6,7 @@ interface Category {
   name: string;
   slug: string;
   emoji: string;
+  safe_delivery_fee_uah: number | null;
 }
 
 function slugify(name: string): string {
@@ -22,6 +23,8 @@ export default function CategoriesPage() {
   const [newName, setNewName] = useState('');
   const [newEmoji, setNewEmoji] = useState('☕');
   const [adding, setAdding] = useState(false);
+  const [feeDrafts, setFeeDrafts] = useState<Record<string, string>>({});
+  const [savingFeeId, setSavingFeeId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -30,8 +33,26 @@ export default function CategoriesPage() {
   async function fetchCategories() {
     setLoading(true);
     const { data, error } = await supabase.from('categories').select('*').order('name');
-    if (!error) setCategories(data ?? []);
+    if (!error) {
+      setCategories(data ?? []);
+      const drafts: Record<string, string> = {};
+      for (const c of data ?? []) drafts[c.id] = c.safe_delivery_fee_uah != null ? String(c.safe_delivery_fee_uah) : '0';
+      setFeeDrafts(drafts);
+    }
     setLoading(false);
+  }
+
+  async function saveFee(id: string) {
+    const fee = Number(feeDrafts[id]?.replace(/[^\d.]/g, '')) || 0;
+    setSavingFeeId(id);
+    const { error } = await supabase.from('categories').update({ safe_delivery_fee_uah: fee }).eq('id', id);
+    setSavingFeeId(null);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, safe_delivery_fee_uah: fee } : c)));
+    setFeeDrafts((prev) => ({ ...prev, [id]: String(fee) }));
   }
 
   async function handleAdd() {
@@ -116,12 +137,33 @@ export default function CategoriesPage() {
                 <span className="font-semibold text-[#20303C]">{c.name}</span>
                 <span className="text-[#8893A2] text-xs">{c.slug}</span>
               </div>
-              <button
-                onClick={() => handleDelete(c.id)}
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100"
-              >
-                Видалити
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <label className="text-xs font-semibold text-[#8893A2] whitespace-nowrap">🚚 Безпечна доставка</label>
+                  <input
+                    value={feeDrafts[c.id] ?? '0'}
+                    onChange={(e) => setFeeDrafts((prev) => ({ ...prev, [c.id]: e.target.value.replace(/[^\d.]/g, '') }))}
+                    inputMode="decimal"
+                    className="w-20 border border-[#E8EDF4] rounded-lg px-2.5 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+                  />
+                  <span className="text-xs text-[#8893A2]">₴</span>
+                  {feeDrafts[c.id] !== String(c.safe_delivery_fee_uah ?? 0) && (
+                    <button
+                      onClick={() => saveFee(c.id)}
+                      disabled={savingFeeId === c.id}
+                      className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-[#187FD8] text-white hover:bg-[#1169B8] disabled:opacity-50"
+                    >
+                      {savingFeeId === c.id ? '…' : 'Зберегти'}
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleDelete(c.id)}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100"
+                >
+                  Видалити
+                </button>
+              </div>
             </div>
           ))}
         </div>

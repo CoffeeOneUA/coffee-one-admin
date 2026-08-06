@@ -7,6 +7,8 @@ interface Deal {
   buyer_id: string;
   seller_id: string;
   amount_uah: number | null;
+  safe_delivery_fee_uah: number | null;
+  source: 'chat_offer' | 'safe_delivery_purchase';
   status: 'pending' | 'completed';
   completed_at: string | null;
   created_at: string;
@@ -78,8 +80,9 @@ export default function DealsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-[#20303C]">Угоди</h1>
         <p className="text-[#8893A2] mt-1">
-          Створюються автоматично, коли в чаті приймається пропозиція ціни. Підтвердіть тут, коли гроші отримано
-          продавцем і товар забрано покупцем — це нарахує обом push і попросить покупця оцінити продавця.
+          Створюються автоматично, коли в чаті приймається пропозиція ціни, або коли покупець одразу оплачує
+          оголошення кнопкою «Купити з безпечною доставкою». Підтвердіть тут, коли гроші передано продавцю
+          і товар доставлено покупцю — це нарахує обом push і попросить покупця оцінити продавця.
         </p>
       </div>
 
@@ -113,17 +116,24 @@ export default function DealsPage() {
           {filtered.map((d, i) => (
             <div key={d.id} className={`p-5 flex items-center justify-between gap-4 ${i !== filtered.length - 1 ? 'border-b border-[#E8EDF4]' : ''}`}>
               <div>
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <span className="font-bold text-[#20303C]">{d.listings?.title ?? 'Оголошення видалено'}</span>
-                  {d.listings?.safe_payment_enabled && (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">🔒 Безпечна оплата</span>
+                  {d.source === 'safe_delivery_purchase' ? (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">🚚 Покупець оплатив з безпечною доставкою</span>
+                  ) : (
+                    d.listings?.safe_payment_enabled && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">🔒 Безпечна оплата</span>
+                    )
                   )}
                 </div>
                 <div className="text-[#546070] text-sm mt-0.5">
                   Продавець: {names[d.seller_id] ?? d.seller_id} · Покупець: {names[d.buyer_id] ?? d.buyer_id}
                 </div>
                 <div className="text-[#8893A2] text-xs mt-1">
-                  {d.amount_uah ? `${Number(d.amount_uah).toLocaleString('uk-UA')} ₴ · ` : ''}
+                  {d.amount_uah ? `${Number(d.amount_uah).toLocaleString('uk-UA')} ₴` : ''}
+                  {d.source === 'safe_delivery_purchase' && d.safe_delivery_fee_uah != null
+                    ? ` + доставка ${Number(d.safe_delivery_fee_uah).toLocaleString('uk-UA')} ₴ · `
+                    : d.amount_uah ? ' · ' : ''}
                   {d.status === 'completed' && d.completed_at ? `Завершено ${formatDate(d.completed_at)}` : `Створено ${formatDate(d.created_at)}`}
                 </div>
               </div>
