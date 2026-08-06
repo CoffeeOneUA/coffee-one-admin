@@ -13,6 +13,7 @@ interface Listing {
   description: string;
   photos: string[];
   status: string;
+  is_top: boolean;
   created_at: string;
   brands: { name: string } | null;
   categories: { name: string } | null;
@@ -263,6 +264,16 @@ export default function ModerationPage() {
 
                 {filter === 'approved' && (
                   <div className="flex gap-2">
+                    <button
+                      onClick={() => handleTop(listing.id, listing.is_top)}
+                      className={`flex-1 font-bold py-2.5 rounded-xl text-sm transition-all border ${
+                        listing.is_top
+                          ? 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200'
+                          : 'bg-[#F1F5FB] text-[#546070] border-[#E8EDF4] hover:bg-[#e4ebf5]'
+                      }`}
+                    >
+                      {listing.is_top ? '📌 У топі' : '📌 В топ'}
+                    </button>
                     <button
                       onClick={() => handleReject(listing.id)}
                       disabled={!!actionLoading}
