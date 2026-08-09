@@ -18,6 +18,7 @@ interface Listing {
   title: string;
   brand_id: string;
   category_id: string;
+  model_id: string | null;
   price_usd: number;
   price_uah: number;
   condition: string;
@@ -41,6 +42,7 @@ const EMPTY_FORM = {
   brand_id: '',
   category_id: '',
   model: '',
+  model_id: null as string | null,
   price_usd: '',
   price_uah: '',
   condition: 'used',
@@ -88,6 +90,7 @@ export default function ListingsPage() {
   const [uploading, setUploading] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const [customModel, setCustomModel] = useState(false);
+  const [coffeeOnePhone, setCoffeeOnePhone] = useState('');
   const [draggedPhoto, setDraggedPhoto] = useState<number | null>(null);
   const skipModelResetRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +121,7 @@ export default function ListingsPage() {
       return;
     }
     set('model', '');
+    set('model_id', null);
     setCustomModel(false);
   }, [form.brand_id]);
 
@@ -136,10 +140,16 @@ export default function ListingsPage() {
     setLoading(false);
   }
 
+  async function fetchCoffeeOnePhone() {
+    const { data } = await supabase.from('profiles').select('phone').eq('id', SYSTEM_SELLER_ID).maybeSingle();
+    setCoffeeOnePhone(data?.phone ?? '');
+  }
+
   function openAdd() {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setCustomModel(false);
+    fetchCoffeeOnePhone();
     setModalOpen(true);
   }
 
@@ -154,6 +164,7 @@ export default function ListingsPage() {
       brand_id: l.brand_id ?? '',
       category_id: l.category_id ?? '',
       model,
+      model_id: l.model_id ?? null,
       price_usd: String(l.price_usd ?? ''),
       price_uah: String(l.price_uah ?? ''),
       condition: l.condition ?? 'used',
@@ -167,6 +178,7 @@ export default function ListingsPage() {
       no_commission: !!l.no_commission,
       photos: l.photos ?? [],
     });
+    fetchCoffeeOnePhone();
     setModalOpen(true);
   }
 
@@ -226,6 +238,7 @@ export default function ListingsPage() {
       title: `${brandName} ${form.model.trim()}`,
       brand_id: form.brand_id,
       category_id: form.category_id,
+      model_id: form.model_id,
       price_usd: Number(form.price_usd),
       price_uah: Number(form.price_uah),
       condition: form.condition,
@@ -248,10 +261,18 @@ export default function ListingsPage() {
 
     if (error) {
       alert(error.message);
-    } else {
-      setModalOpen(false);
-      await fetchAll();
+      setSaving(false);
+      return;
     }
+
+    // Телефон продавця Coffee One спільний для всіх оголошень системного
+    // акаунта — оновлюємо його тут окремим запитом, якщо змінили.
+    if (form.is_coffee_one_seller) {
+      await supabase.from('profiles').update({ phone: coffeeOnePhone.trim() || null }).eq('id', SYSTEM_SELLER_ID);
+    }
+
+    setModalOpen(false);
+    await fetchAll();
     setSaving(false);
   }
 
@@ -416,7 +437,14 @@ export default function ListingsPage() {
                 <label className="text-xs font-bold text-[#546070] mb-1.5 block">Модель</label>
                 {models.length > 0 && !customModel ? (
                   <>
-                    <select value={form.model} onChange={(e) => set('model', e.target.value)} className={inputClass}>
+                    <select
+                      value={form.model}
+                      onChange={(e) => {
+                        set('model', e.target.value);
+                        set('model_id', models.find((m) => m.name === e.target.value)?.id ?? null);
+                      }}
+                      className={inputClass}
+                    >
                       <option value="">Оберіть модель</option>
                       {models.map((m) => (
                         <option key={m.id} value={m.name}>{m.name}</option>
@@ -424,7 +452,7 @@ export default function ListingsPage() {
                     </select>
                     <button
                       type="button"
-                      onClick={() => { setCustomModel(true); set('model', ''); }}
+                      onClick={() => { setCustomModel(true); set('model', ''); set('model_id', null); }}
                       className="text-xs font-semibold text-[#187FD8] mt-1.5"
                     >
                       Немає в списку — вписати вручну
@@ -432,7 +460,12 @@ export default function ListingsPage() {
                   </>
                 ) : (
                   <>
-                    <input value={form.model} onChange={(e) => set('model', e.target.value)} placeholder="Напр. Linea PB" className={inputClass} />
+                    <input
+                      value={form.model}
+                      onChange={(e) => { set('model', e.target.value); set('model_id', null); }}
+                      placeholder="Напр. Linea PB"
+                      className={inputClass}
+                    />
                     {models.length > 0 && (
                       <button type="button" onClick={() => setCustomModel(false)} className="text-xs font-semibold text-[#187FD8] mt-1.5">
                         ← Обрати зі списку
@@ -560,6 +593,21 @@ export default function ListingsPage() {
                     </div>
                   </div>
                   <Toggle on={form.no_commission} onChange={(v) => set('no_commission', v)} />
+                </div>
+              )}
+
+              {form.is_coffee_one_seller && (
+                <div className="py-2 border-t border-[#E8EDF4]">
+                  <label className="text-sm font-semibold text-[#20303C] mb-0.5 block">📞 Телефон продавця Coffee One</label>
+                  <p className="text-[#8893A2] text-xs mb-2">
+                    Спільний для всіх оголошень від Coffee One — зміна тут вплине на кнопку дзвінка на кожному з них.
+                  </p>
+                  <input
+                    value={coffeeOnePhone}
+                    onChange={(e) => setCoffeeOnePhone(e.target.value)}
+                    placeholder="+380 67 000 00 00"
+                    className={inputClass}
+                  />
                 </div>
               )}
             </div>
