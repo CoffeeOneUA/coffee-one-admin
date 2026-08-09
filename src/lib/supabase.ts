@@ -4,11 +4,11 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
 
-// Звичайний клієнт для читання публічних даних. Та сама причина, що й у
-// supabaseAdmin — адмінка не логінить користувачів через Supabase Auth,
-// тож жодній сесії тут зберігатись не треба.
+// Клієнт для входу в адмінку (lib/auth.tsx логінить адміна через
+// supabase.auth.signInWithPassword) — сесія МАЄ зберігатись, інакше кожне
+// оновлення сторінки викидає на /login, навіть якщо адмін щойно увійшов.
 export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
+  auth: { persistSession: true, autoRefreshToken: true },
 });
 
 // Адмін клієнт з повним доступом. persistSession/autoRefreshToken вимкнені
