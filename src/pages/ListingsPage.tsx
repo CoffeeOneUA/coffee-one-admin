@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
 
+interface Model { id: string; brand_id: string; name: string }
+
 // Системний акаунт "Coffee One", яким адмінка публікує оголошення напряму
 // (listings.user_id обов'язковий, а в адмінці немає власного покупця/
 // продавця-людини для цього). Створений один раз через Auth Admin API.
@@ -82,11 +84,39 @@ export default function ListingsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [models, setModels] = useState<Model[]>([]);
+  const [customModel, setCustomModel] = useState(false);
+  const skipModelResetRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchAll();
   }, []);
+
+  // Моделі відфільтровані по бренду — той самий патерн, що useModels у
+  // мобільному/веб застосунку.
+  useEffect(() => {
+    if (!form.brand_id) {
+      setModels([]);
+      return;
+    }
+    supabase
+      .from('models')
+      .select('id, brand_id, name')
+      .eq('brand_id', form.brand_id)
+      .order('name')
+      .then(({ data }) => setModels(data ?? []));
+  }, [form.brand_id]);
+
+  // Скидаємо модель при зміні бренду (крім автопідстановки при редагуванні).
+  useEffect(() => {
+    if (skipModelResetRef.current) {
+      skipModelResetRef.current = false;
+      return;
+    }
+    set('model', '');
+    setCustomModel(false);
+  }, [form.brand_id]);
 
   async function fetchAll() {
     setLoading(true);
@@ -106,12 +136,17 @@ export default function ListingsPage() {
   function openAdd() {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setCustomModel(false);
     setModalOpen(true);
   }
 
   function openEdit(l: Listing) {
     setEditingId(l.id);
     const model = l.title.startsWith(l.brands?.name ?? '\0') ? l.title.slice((l.brands?.name ?? '').length).trim() : l.title;
+    // Модель з назви оголошення могла бути вписана вручну й не збігатись
+    // точно з жодним варіантом у списку — показуємо як вільний текст.
+    skipModelResetRef.current = true;
+    setCustomModel(true);
     setForm({
       brand_id: l.brand_id ?? '',
       category_id: l.category_id ?? '',
@@ -320,7 +355,17 @@ export default function ListingsPage() {
       {modalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => !saving && setModalOpen(false)}>
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-extrabold text-[#20303C] mb-1">{editingId ? 'Редагувати оголошення' : 'Нове оголошення'}</h2>
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-xl font-extrabold text-[#20303C] mb-1">{editingId ? 'Редагувати оголошення' : 'Нове оголошення'}</h2>
+              <button
+                onClick={() => setModalOpen(false)}
+                disabled={saving}
+                aria-label="Закрити"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8893A2] hover:bg-[#F1F5FB] hover:text-[#546070] transition-all shrink-0 disabled:opacity-50"
+              >
+                ✕
+              </button>
+            </div>
             {!editingId && (
               <p className="text-[#8893A2] text-xs mb-5">Публікується одразу від імені продавця «Coffee One», без модерації.</p>
             )}
@@ -349,7 +394,32 @@ export default function ListingsPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#546070] mb-1.5 block">Модель</label>
-                <input value={form.model} onChange={(e) => set('model', e.target.value)} placeholder="Напр. Linea PB" className={inputClass} />
+                {models.length > 0 && !customModel ? (
+                  <>
+                    <select value={form.model} onChange={(e) => set('model', e.target.value)} className={inputClass}>
+                      <option value="">Оберіть модель</option>
+                      {models.map((m) => (
+                        <option key={m.id} value={m.name}>{m.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => { setCustomModel(true); set('model', ''); }}
+                      className="text-xs font-semibold text-[#187FD8] mt-1.5"
+                    >
+                      Немає в списку — вписати вручну
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <input value={form.model} onChange={(e) => set('model', e.target.value)} placeholder="Напр. Linea PB" className={inputClass} />
+                    {models.length > 0 && (
+                      <button type="button" onClick={() => setCustomModel(false)} className="text-xs font-semibold text-[#187FD8] mt-1.5">
+                        ← Обрати зі списку
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
