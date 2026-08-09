@@ -161,7 +161,7 @@ export default function ModerationPage() {
                   <img
                     src={listing.photos[0]}
                     alt={listing.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 ) : (
                   <span className="text-6xl">☕</span>

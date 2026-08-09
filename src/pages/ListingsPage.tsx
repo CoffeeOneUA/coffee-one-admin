@@ -30,6 +30,7 @@ interface Listing {
   sold_reason: string | null;
   is_coffee_one_seller: boolean;
   safe_payment_enabled: boolean;
+  no_commission: boolean;
   created_at: string;
   brands: { name: string } | null;
   categories: { name: string; slug: string } | null;
@@ -50,6 +51,7 @@ const EMPTY_FORM = {
   status: 'approved',
   is_coffee_one_seller: true,
   safe_payment_enabled: false,
+  no_commission: false,
   photos: [] as string[],
 };
 
@@ -161,6 +163,7 @@ export default function ListingsPage() {
       status: l.status ?? 'approved',
       is_coffee_one_seller: !!l.is_coffee_one_seller,
       safe_payment_enabled: !!l.safe_payment_enabled,
+      no_commission: !!l.no_commission,
       photos: l.photos ?? [],
     });
     setModalOpen(true);
@@ -199,6 +202,16 @@ export default function ListingsPage() {
     setForm((prev) => ({ ...prev, photos: prev.photos.filter((p) => p !== url) }));
   }
 
+  function movePhoto(index: number, direction: -1 | 1) {
+    setForm((prev) => {
+      const target = index + direction;
+      if (target < 0 || target >= prev.photos.length) return prev;
+      const photos = [...prev.photos];
+      [photos[index], photos[target]] = [photos[target], photos[index]];
+      return { ...prev, photos };
+    });
+  }
+
   async function handleSave() {
     const brandName = brands.find((b) => b.id === form.brand_id)?.name;
     if (!brandName) return alert('Оберіть бренд');
@@ -222,6 +235,9 @@ export default function ListingsPage() {
       status: form.status,
       is_coffee_one_seller: form.is_coffee_one_seller,
       safe_payment_enabled: form.safe_payment_enabled,
+      // Без комісії має сенс лише для оголошень Coffee One — якщо тумблер
+      // "Продавець Coffee One" вимкнули, скидаємо і цей теж.
+      no_commission: form.is_coffee_one_seller ? form.no_commission : false,
       photos: form.photos,
     };
 
@@ -304,7 +320,7 @@ export default function ListingsPage() {
             <div key={l.id} className="bg-white rounded-2xl shadow-sm border border-[#E8EDF4] overflow-hidden">
               <div className="h-44 bg-gradient-to-br from-[#dfe9f6] to-[#c3d4ea] relative flex items-center justify-center">
                 {l.photos && l.photos.length > 0 ? (
-                  <img src={l.photos[0]} alt={l.title} className="w-full h-full object-cover" />
+                  <img src={l.photos[0]} alt={l.title} className="w-full h-full object-contain" />
                 ) : (
                   <span className="text-5xl">☕</span>
                 )}
@@ -328,9 +344,12 @@ export default function ListingsPage() {
                   {l.profiles?.full_name ?? 'Без імені'} · 📍 {l.city}
                 </div>
 
-                <div className="flex items-baseline gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <span className="font-extrabold text-[#20303C] text-lg">{Number(l.price_uah).toLocaleString('uk-UA')} ₴</span>
                   <span className="text-[#8893A2] text-xs">≈ ${Number(l.price_usd).toLocaleString()}</span>
+                  {l.no_commission && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">💰 Без комісії</span>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between mt-3 py-3 border-t border-[#E8EDF4] mb-3">
@@ -475,10 +494,31 @@ export default function ListingsPage() {
                 <label className="text-xs font-bold text-[#546070] mb-1.5 block">Фото</label>
                 {form.photos.length > 0 && (
                   <div className="flex flex-wrap gap-3 mb-2">
-                    {form.photos.map((url) => (
-                      <div key={url} className="relative w-20 h-20">
+                    {form.photos.map((url, i) => (
+                      <div key={url} className="relative w-20 h-20 group">
                         <img src={url} className="w-full h-full object-cover rounded-lg border border-[#E8EDF4]" alt="" />
+                        {i === 0 && (
+                          <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">Головне</span>
+                        )}
                         <button onClick={() => removePhoto(url)} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">✕</button>
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => movePhoto(i, -1)}
+                            disabled={i === 0}
+                            className="w-5 h-5 rounded-full bg-white border border-[#E8EDF4] shadow text-[10px] flex items-center justify-center disabled:opacity-30"
+                          >
+                            ◀
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => movePhoto(i, 1)}
+                            disabled={i === form.photos.length - 1}
+                            className="w-5 h-5 rounded-full bg-white border border-[#E8EDF4] shadow text-[10px] flex items-center justify-center disabled:opacity-30"
+                          >
+                            ▶
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -514,6 +554,18 @@ export default function ListingsPage() {
                 </div>
                 <Toggle on={form.safe_payment_enabled} onChange={(v) => set('safe_payment_enabled', v)} />
               </div>
+
+              {form.is_coffee_one_seller && (
+                <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
+                  <div>
+                    <div className="text-sm font-semibold text-[#20303C]">💰 Без комісії</div>
+                    <div className="text-[#8893A2] text-xs mt-0.5">
+                      Лише для товарів Coffee One. Вартість доставки при «Купити з безпечною доставкою» стає 0 ₴ — покупець платить рівно ціну товару, ми пояснюємо йому чому.
+                    </div>
+                  </div>
+                  <Toggle on={form.no_commission} onChange={(v) => set('no_commission', v)} />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 mt-6">
