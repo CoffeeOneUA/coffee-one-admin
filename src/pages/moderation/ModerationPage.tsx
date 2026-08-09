@@ -156,12 +156,12 @@ export default function ModerationPage() {
               className="bg-white rounded-2xl shadow-sm border border-[#E8EDF4] overflow-hidden"
             >
               {/* Фото */}
-              <div className="h-48 bg-gradient-to-br from-[#dfe9f6] to-[#c3d4ea] relative flex items-center justify-center">
+              <div className="aspect-[4/3] bg-gradient-to-br from-[#dfe9f6] to-[#c3d4ea] relative flex items-center justify-center">
                 {listing.photos && listing.photos.length > 0 ? (
                   <img
                     src={listing.photos[0]}
                     alt={listing.title}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <span className="text-6xl">☕</span>

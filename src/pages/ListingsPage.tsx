@@ -88,6 +88,7 @@ export default function ListingsPage() {
   const [uploading, setUploading] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const [customModel, setCustomModel] = useState(false);
+  const [draggedPhoto, setDraggedPhoto] = useState<number | null>(null);
   const skipModelResetRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -202,12 +203,12 @@ export default function ListingsPage() {
     setForm((prev) => ({ ...prev, photos: prev.photos.filter((p) => p !== url) }));
   }
 
-  function movePhoto(index: number, direction: -1 | 1) {
+  function reorderPhotos(from: number, to: number) {
+    if (from === to) return;
     setForm((prev) => {
-      const target = index + direction;
-      if (target < 0 || target >= prev.photos.length) return prev;
       const photos = [...prev.photos];
-      [photos[index], photos[target]] = [photos[target], photos[index]];
+      const [moved] = photos.splice(from, 1);
+      photos.splice(to, 0, moved);
       return { ...prev, photos };
     });
   }
@@ -318,9 +319,9 @@ export default function ListingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
           {filtered.map((l) => (
             <div key={l.id} className="bg-white rounded-2xl shadow-sm border border-[#E8EDF4] overflow-hidden">
-              <div className="h-44 bg-gradient-to-br from-[#dfe9f6] to-[#c3d4ea] relative flex items-center justify-center">
+              <div className="aspect-[4/3] bg-gradient-to-br from-[#dfe9f6] to-[#c3d4ea] relative flex items-center justify-center">
                 {l.photos && l.photos.length > 0 ? (
-                  <img src={l.photos[0]} alt={l.title} className="w-full h-full object-contain" />
+                  <img src={l.photos[0]} alt={l.title} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-5xl">☕</span>
                 )}
@@ -494,31 +495,26 @@ export default function ListingsPage() {
                 <label className="text-xs font-bold text-[#546070] mb-1.5 block">Фото</label>
                 {form.photos.length > 0 && (
                   <div className="flex flex-wrap gap-3 mb-2">
+                    <p className="w-full text-[11px] text-[#8893A2] -mt-1 mb-0.5">Перетягніть фото, щоб змінити порядок</p>
                     {form.photos.map((url, i) => (
-                      <div key={url} className="relative w-20 h-20 group">
-                        <img src={url} className="w-full h-full object-cover rounded-lg border border-[#E8EDF4]" alt="" />
+                      <div
+                        key={url}
+                        draggable
+                        onDragStart={() => setDraggedPhoto(i)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedPhoto !== null) reorderPhotos(draggedPhoto, i);
+                          setDraggedPhoto(null);
+                        }}
+                        onDragEnd={() => setDraggedPhoto(null)}
+                        className={`relative w-20 h-20 cursor-grab active:cursor-grabbing ${draggedPhoto === i ? 'opacity-40' : ''}`}
+                      >
+                        <img src={url} className="w-full h-full object-cover rounded-lg border border-[#E8EDF4] pointer-events-none" alt="" />
                         {i === 0 && (
                           <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">Головне</span>
                         )}
                         <button onClick={() => removePhoto(url)} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">✕</button>
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => movePhoto(i, -1)}
-                            disabled={i === 0}
-                            className="w-5 h-5 rounded-full bg-white border border-[#E8EDF4] shadow text-[10px] flex items-center justify-center disabled:opacity-30"
-                          >
-                            ◀
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => movePhoto(i, 1)}
-                            disabled={i === form.photos.length - 1}
-                            className="w-5 h-5 rounded-full bg-white border border-[#E8EDF4] shadow text-[10px] flex items-center justify-center disabled:opacity-30"
-                          >
-                            ▶
-                          </button>
-                        </div>
                       </div>
                     ))}
                   </div>
