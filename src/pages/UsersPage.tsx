@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
 
 interface UserProfile {
@@ -65,6 +65,8 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [orders, setOrders] = useState<UserOrder[] | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -139,6 +141,28 @@ export default function UsersPage() {
 
   function set<K extends keyof typeof EMPTY_FORM>(key: K, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleAvatarUpload(files: FileList | null) {
+    if (!files || files.length === 0 || !editingUser) return;
+    const file = files[0];
+    setAvatarUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const fileName = `${editingUser.id}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from('avatars').upload(fileName, file, {
+        contentType: file.type || 'image/jpeg',
+        upsert: false,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      set('avatar_url', data.publicUrl);
+    } catch (e: any) {
+      alert(e.message ?? 'Не вдалося завантажити аватар');
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
   }
 
   async function handleSaveProfile() {
@@ -318,12 +342,32 @@ export default function UsersPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Аватар (URL)</label>
+                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Аватар</label>
                 <div className="flex items-center gap-3">
-                  {form.avatar_url && (
-                    <img src={form.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-[#E8EDF4] flex-shrink-0" />
-                  )}
-                  <input value={form.avatar_url} onChange={(e) => set('avatar_url', e.target.value)} className={inputClass} placeholder="https://…" />
+                  <div className="w-16 h-16 rounded-full border border-[#E8EDF4] flex-shrink-0 overflow-hidden bg-[#F1F5FB] flex items-center justify-center">
+                    {form.avatar_url ? (
+                      <img src={form.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl">👤</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleAvatarUpload(e.target.files)}
+                      disabled={avatarUploading}
+                      className="text-sm"
+                    />
+                    {avatarUploading && <span className="text-xs text-[#8893A2]">Завантажуємо…</span>}
+                    <input
+                      value={form.avatar_url}
+                      onChange={(e) => set('avatar_url', e.target.value)}
+                      className={`${inputClass} text-xs`}
+                      placeholder="або встав посилання вручну — https://…"
+                    />
+                  </div>
                 </div>
               </div>
 
