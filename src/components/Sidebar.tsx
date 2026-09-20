@@ -33,6 +33,7 @@ const NAV_ITEMS = [
   { path: '/deals', icon: '🤝', label: 'Угоди' },
   { path: '/users', icon: '👥', label: 'Користувачі' },
   { path: '/site-settings', icon: '🌐', label: 'Сайт' },
+  { path: '/app-version', icon: '📱', label: 'Версія застосунку' },
 ];
 
 // Живий лічильник нових заявок на ТО + браузерне сповіщення (Notification

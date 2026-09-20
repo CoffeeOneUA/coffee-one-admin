@@ -26,6 +26,7 @@ import DealsPage from './pages/DealsPage';
 import UsersPage from './pages/UsersPage';
 import SiteSettingsPage from './pages/SiteSettingsPage';
 import ListingsPage from './pages/ListingsPage';
+import AppVersionPage from './pages/AppVersionPage';
 
 export default function App() {
   return (
@@ -62,6 +63,7 @@ export default function App() {
             <Route path="service-centers" element={<ServiceCentersPage />} />
             <Route path="deals" element={<DealsPage />} />
             <Route path="site-settings" element={<SiteSettingsPage />} />
+            <Route path="app-version" element={<AppVersionPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route
               path="admin-users"
