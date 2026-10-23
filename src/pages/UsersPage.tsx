@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 interface UserProfile {
   id: string;
@@ -231,7 +232,7 @@ export default function UsersPage() {
 
       <div className="flex items-center gap-3 mb-4">
         <div className="relative max-w-md w-full">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8893A2]">🔍</span>
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8893A2]"><Icon name="search" size={15} /></span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -266,7 +267,7 @@ export default function UsersPage() {
       ) : filtered.length === 0 ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="text-5xl mb-3">{normalizedSearch ? '🔍' : '👥'}</div>
+            <div className="flex justify-center mb-3"><Icon name={normalizedSearch ? 'search' : 'users'} size={40} color="#C2CDDA" /></div>
             <div className="text-xl font-bold text-[#20303C] mb-2">
               {normalizedSearch ? 'Нічого не знайдено' : filter === 'blocked' ? 'Заблокованих немає' : 'Користувачів немає'}
             </div>
@@ -283,8 +284,8 @@ export default function UsersPage() {
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Заблоковано</span>
                   )}
                   {u.reviews_count ? (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                      ★ {Number(u.rating).toFixed(1)} ({u.reviews_count})
+                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      <Icon name="star" size={11} filled />{Number(u.rating).toFixed(1)} ({u.reviews_count})
                     </span>
                   ) : null}
                 </div>
@@ -297,9 +298,9 @@ export default function UsersPage() {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => openEdit(u)}
-                  className="font-bold px-4 py-2.5 rounded-xl text-sm bg-[#F1F5FB] hover:bg-[#e4ebf5] text-[#546070] transition-all"
+                  className="font-bold px-4 py-2.5 rounded-xl text-sm bg-[#F1F5FB] hover:bg-[#e4ebf5] text-[#546070] transition-all inline-flex items-center gap-1.5"
                 >
-                  ✏️ Редагувати
+                  <Icon name="edit" size={13} />Редагувати
                 </button>
                 <button
                   onClick={() => toggleBlock(u)}
@@ -348,7 +349,7 @@ export default function UsersPage() {
                     {form.avatar_url ? (
                       <img src={form.avatar_url} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-2xl">👤</span>
+                      <Icon name="user" size={24} color="#8893A2" />
                     )}
                   </div>
                   <div className="flex flex-col gap-1.5 flex-1">

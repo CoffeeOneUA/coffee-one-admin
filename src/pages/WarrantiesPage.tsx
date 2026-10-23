@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon, type IconName } from '../components/Icon';
 
 interface Warranty {
   id: string;
@@ -48,6 +49,14 @@ const STATUS_LABEL: Record<Warranty['status'], string> = {
   cancelled: 'Скасовано',
   expired: 'Закінчилась',
   renewed: 'Продовжена',
+};
+
+const STATUS_ICON: Record<Warranty['status'], IconName> = {
+  pending_1c: 'clock',
+  active: 'checkCircle',
+  cancelled: 'xCircle',
+  expired: 'xCircle',
+  renewed: 'checkCircle',
 };
 
 const STATUS_COLOR: Record<Warranty['status'], string> = {
@@ -128,12 +137,15 @@ function Baf1cSettingsPanel() {
         className="w-full flex items-center justify-between px-5 py-4"
       >
         <div className="flex items-center gap-3">
-          <span className="font-bold text-[#20303C]">⚙ Інтеграція з 1С (BAF)</span>
+          <span className="w-8 h-8 rounded-lg bg-[#EAF2FC] text-[#1169B8] flex items-center justify-center shrink-0">
+            <Icon name="sliders" size={15} />
+          </span>
+          <span className="font-bold text-[#20303C]">Інтеграція з 1С (BAF)</span>
           <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${settings.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
             {settings.enabled ? 'Увімкнена' : 'Вимкнена'}
           </span>
         </div>
-        <span className="text-[#8893A2]">{open ? '▲' : '▼'}</span>
+        <span className="text-[#8893A2]"><Icon name="chevronDown" size={16} className={open ? 'rotate-180' : ''} /></span>
       </button>
 
       {open && (
@@ -293,7 +305,7 @@ export default function WarrantiesPage() {
 
       <div className="flex items-center gap-3 mb-6">
         <div className="relative max-w-md w-full">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8893A2]">🔍</span>
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8893A2]"><Icon name="search" size={15} /></span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -305,8 +317,8 @@ export default function WarrantiesPage() {
           <span className="text-[#8893A2] text-sm font-medium shrink-0">Знайдено: {filtered.length}</span>
         )}
         {staleCount > 0 && (
-          <span className="text-amber-700 bg-amber-100 text-sm font-bold px-3 py-1.5 rounded-full shrink-0">
-            ⚠ Зависло без підтвердження: {staleCount}
+          <span className="inline-flex items-center gap-1.5 text-amber-700 bg-amber-100 text-sm font-bold px-3 py-1.5 rounded-full shrink-0">
+            <Icon name="alertTriangle" size={14} />Зависло без підтвердження: {staleCount}
           </span>
         )}
       </div>
@@ -318,14 +330,14 @@ export default function WarrantiesPage() {
       ) : warranties.length === 0 ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="text-5xl mb-3">🛡</div>
+            <div className="flex justify-center mb-3"><Icon name="shield" size={40} color="#C2CDDA" /></div>
             <div className="text-xl font-bold text-[#20303C] mb-2">Гарантій ще немає</div>
           </div>
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="text-5xl mb-3">🔍</div>
+            <div className="flex justify-center mb-3"><Icon name="search" size={40} color="#C2CDDA" /></div>
             <div className="text-xl font-bold text-[#20303C] mb-2">Нічого не знайдено</div>
             <div className="text-[#8893A2] text-sm">Спробуйте інше прізвище, телефон або номер документа</div>
           </div>
@@ -377,7 +389,8 @@ export default function WarrantiesPage() {
                       )}
                     </td>
                     <td className="px-5 py-4">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLOR[w.status]}`}>
+                      <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLOR[w.status]}`}>
+                        <Icon name={STATUS_ICON[w.status]} size={11} />
                         {STATUS_LABEL[w.status]}
                       </span>
                       {w.activation_request_error && w.status === 'pending_1c' && (

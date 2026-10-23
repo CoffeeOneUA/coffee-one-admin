@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../../lib/supabase';
+import { Icon } from '../../components/Icon';
 
 interface Listing {
   id: string;
@@ -127,23 +128,20 @@ export default function ModerationPage() {
       {/* Контент */}
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="text-4xl mb-3">⏳</div>
-            <div className="text-[#8893A2] font-medium">Завантаження…</div>
-          </div>
+          <div className="text-[#8893A2] font-medium">Завантаження…</div>
         </div>
       ) : listings.length === 0 ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="text-5xl mb-3">
-              {filter === 'pending' ? '✅' : filter === 'approved' ? '📋' : '🗑'}
+            <div className="flex justify-center mb-3">
+              <Icon name={filter === 'pending' ? 'checkCircle' : filter === 'approved' ? 'clipboard' : 'trash'} size={40} color="#C2CDDA" />
             </div>
             <div className="text-xl font-bold text-[#20303C] mb-2">
               {filter === 'pending' ? 'Немає нових оголошень' : 'Список порожній'}
             </div>
             <div className="text-[#8893A2]">
               {filter === 'pending'
-                ? 'Усі оголошення перевірено 🎉'
+                ? 'Усі оголошення перевірено'
                 : 'Оголошень в цій категорії немає'}
             </div>
           </div>
@@ -164,12 +162,12 @@ export default function ModerationPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-6xl">☕</span>
+                  <Icon name="coffeeCup" size={52} color="#AFC3DB" />
                 )}
                 {/* Кількість фото */}
                 {listing.photos && listing.photos.length > 1 && (
-                  <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs font-semibold px-2 py-1 rounded-lg">
-                    📷 {listing.photos.length}
+                  <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs font-semibold px-2 py-1 rounded-lg inline-flex items-center gap-1">
+                    <Icon name="camera" size={11} color="#fff" />{listing.photos.length}
                   </div>
                 )}
                 {/* Дата */}
@@ -202,11 +200,11 @@ export default function ModerationPage() {
 
                 {/* Характеристики */}
                 <div className="flex flex-wrap gap-1.5 mb-3">
-                  <span className="bg-[#F1F5FB] text-[#546070] text-xs font-semibold px-2.5 py-1 rounded-lg">
-                    📍 {listing.city}
+                  <span className="inline-flex items-center gap-1 bg-[#F1F5FB] text-[#546070] text-xs font-semibold px-2.5 py-1 rounded-lg">
+                    <Icon name="pin" size={11} />{listing.city}
                   </span>
-                  <span className="bg-[#F1F5FB] text-[#546070] text-xs font-semibold px-2.5 py-1 rounded-lg">
-                    {listing.condition === 'new' ? '✨ Нова' : '🔄 Б/в'}
+                  <span className="inline-flex items-center gap-1 bg-[#F1F5FB] text-[#546070] text-xs font-semibold px-2.5 py-1 rounded-lg">
+                    <Icon name={listing.condition === 'new' ? 'scan' : 'repeat'} size={11} />{listing.condition === 'new' ? 'Нова' : 'Б/в'}
                   </span>
                   {listing.groups && (
                     <span className="bg-[#F1F5FB] text-[#546070] text-xs font-semibold px-2.5 py-1 rounded-lg">
@@ -248,16 +246,16 @@ export default function ModerationPage() {
                     <button
                       onClick={() => handleApprove(listing.id)}
                       disabled={!!actionLoading}
-                      className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                     >
-                      {actionLoading === listing.id + '_approve' ? '⏳' : '✓ Схвалити'}
+                      {actionLoading === listing.id + '_approve' ? 'Зачекайте…' : (<><Icon name="checkCircle" size={13} />Схвалити</>)}
                     </button>
                     <button
                       onClick={() => handleReject(listing.id)}
                       disabled={!!actionLoading}
-                      className="flex-1 bg-red-50 hover:bg-red-100 text-red-500 font-bold py-2.5 rounded-xl text-sm transition-all border border-red-200 disabled:opacity-50"
+                      className="flex-1 bg-red-50 hover:bg-red-100 text-red-500 font-bold py-2.5 rounded-xl text-sm transition-all border border-red-200 disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                     >
-                      {actionLoading === listing.id + '_reject' ? '⏳' : '✕ Відхилити'}
+                      {actionLoading === listing.id + '_reject' ? 'Зачекайте…' : (<><Icon name="close" size={13} />Відхилити</>)}
                     </button>
                   </div>
                 )}
@@ -270,9 +268,9 @@ export default function ModerationPage() {
                         listing.is_top
                           ? 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200'
                           : 'bg-[#F1F5FB] text-[#546070] border-[#E8EDF4] hover:bg-[#e4ebf5]'
-                      }`}
+                      } inline-flex items-center justify-center gap-1.5`}
                     >
-                      {listing.is_top ? '📌 У топі' : '📌 В топ'}
+                      <Icon name="pin" size={13} />{listing.is_top ? 'У топі' : 'В топ'}
                     </button>
                     <button
                       onClick={() => handleReject(listing.id)}
@@ -289,9 +287,9 @@ export default function ModerationPage() {
                     <button
                       onClick={() => handleApprove(listing.id)}
                       disabled={!!actionLoading}
-                      className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                     >
-                      ✓ Схвалити
+                      <Icon name="checkCircle" size={13} />Схвалити
                     </button>
                   </div>
                 )}

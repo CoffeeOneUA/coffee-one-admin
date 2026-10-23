@@ -16,6 +16,9 @@ dist-ssr
 .env
 .env.*
 
+# GitHub PAT for git push (git credential-store format) — never commit
+.git-credentials
+
 # Stray Expo cache (this is a Vite project, not Expo)
 .expo
 

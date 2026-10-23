@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 interface NotificationRow {
   id: string;
@@ -246,7 +247,7 @@ export default function NotificationsPage() {
           {audienceLoading ? (
             'Рахуємо аудиторію…'
           ) : isBroadcast ? (
-            <span>📣 Розсилка усім користувачам (включно з тими, хто зареєструється пізніше)</span>
+            <span className="inline-flex items-center gap-1.5"><Icon name="megaphone" size={13} />Розсилка усім користувачам (включно з тими, хто зареєструється пізніше)</span>
           ) : (
             <span>Отримають сповіщення: <strong>{audience.length}</strong> користувачів{audience.length > 0 && audience.length <= 8 ? ` — ${audience.map((a) => a.full_name || a.phone || a.email).join(', ')}` : ''}</span>
           )}
@@ -299,9 +300,10 @@ export default function NotificationsPage() {
         <button
           onClick={handleSend}
           disabled={sending || !title.trim() || !body.trim() || (!isBroadcast && audience.length === 0) || needsDestSelection}
-          className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#187FD8] text-white hover:bg-[#1169B8] disabled:opacity-50"
+          className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#187FD8] text-white hover:bg-[#1169B8] disabled:opacity-50 flex items-center gap-2"
         >
-          {sending ? 'Надсилання…' : isBroadcast ? '📣 Надіслати всім' : `📣 Надіслати (${audience.length})`}
+          {sending ? null : <Icon name="megaphone" size={15} />}
+          {sending ? 'Надсилання…' : isBroadcast ? 'Надіслати всім' : `Надіслати (${audience.length})`}
         </button>
       </div>
 

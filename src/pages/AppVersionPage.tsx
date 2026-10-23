@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 interface Settings {
   latest_version: string;
@@ -172,9 +173,10 @@ export default function AppVersionPage() {
           <button
             onClick={handleNotify}
             disabled={sending}
-            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#F1F5FB] text-[#546070] hover:bg-[#e4ebf5] disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#F1F5FB] text-[#546070] hover:bg-[#e4ebf5] disabled:opacity-50 flex items-center gap-2"
           >
-            {sending ? 'Надсилаємо…' : '📣 Надіслати push про оновлення'}
+            {sending ? null : <Icon name="megaphone" size={15} />}
+            {sending ? 'Надсилаємо…' : 'Надіслати push про оновлення'}
           </button>
         </div>
       </div>

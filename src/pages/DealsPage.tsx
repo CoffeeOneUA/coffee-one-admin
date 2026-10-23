@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 interface Deal {
   id: string;
@@ -107,7 +108,7 @@ export default function DealsPage() {
       ) : filtered.length === 0 ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="text-5xl mb-3">🤝</div>
+            <div className="flex justify-center mb-3"><Icon name="repeat" size={40} color="#C2CDDA" /></div>
             <div className="text-xl font-bold text-[#20303C] mb-2">Угод немає</div>
           </div>
         </div>
@@ -119,10 +120,10 @@ export default function DealsPage() {
                 <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <span className="font-bold text-[#20303C]">{d.listings?.title ?? 'Оголошення видалено'}</span>
                   {d.source === 'safe_delivery_purchase' ? (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">🚚 Покупець оплатив з безпечною доставкою</span>
+                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700"><Icon name="truck" size={11} />Покупець оплатив з безпечною доставкою</span>
                   ) : (
                     d.listings?.safe_payment_enabled && (
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">🔒 Безпечна оплата</span>
+                      <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700"><Icon name="lock" size={11} />Безпечна оплата</span>
                     )
                   )}
                 </div>

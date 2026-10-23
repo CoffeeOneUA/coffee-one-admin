@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
 import { useAuth, type AdminRole } from '../lib/auth';
+import { Icon } from '../components/Icon';
 
 interface AdminUser {
   id: string;
@@ -254,7 +255,7 @@ export default function AdminUsersPage() {
                   className="font-bold px-3 py-2.5 rounded-xl text-sm bg-[#F1F5FB] hover:bg-red-50 hover:text-red-500 text-[#8893A2] transition-all disabled:opacity-50"
                   title="Видалити назавжди"
                 >
-                  🗑
+                  <Icon name="trash" size={15} />
                 </button>
               </div>
             </div>
@@ -267,7 +268,7 @@ export default function AdminUsersPage() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             {created ? (
               <>
-                <div className="text-4xl mb-3">✅</div>
+                <div className="mb-3"><Icon name="checkCircle" size={32} color="#1FA463" /></div>
                 <h2 className="text-xl font-extrabold text-[#20303C] mb-1">Доступ надано</h2>
                 <p className="text-[#8893A2] text-sm mb-4">
                   Передайте ці дані новому адміну — пароль ніде більше не показується.
@@ -277,8 +278,9 @@ export default function AdminUsersPage() {
                   <div className="text-sm flex items-center gap-2">
                     <span className="text-[#8893A2]">Пароль: </span>
                     <span className="font-mono font-bold text-[#20303C]">{created.password}</span>
-                    <button onClick={copyPassword} className="text-xs font-bold text-[#187FD8] hover:underline">
-                      {copied ? 'Скопійовано ✓' : 'Копіювати'}
+                    <button onClick={copyPassword} className="text-xs font-bold text-[#187FD8] hover:underline inline-flex items-center gap-1">
+                      {copied && <Icon name="checkCircle" size={12} />}
+                      {copied ? 'Скопійовано' : 'Копіювати'}
                     </button>
                   </div>
                 </div>
@@ -321,7 +323,7 @@ export default function AdminUsersPage() {
                         className="shrink-0 px-3 py-2.5 rounded-lg text-sm font-bold bg-[#F1F5FB] text-[#546070] hover:bg-[#e4ebf5]"
                         title="Згенерувати новий"
                       >
-                        🔄
+                        <Icon name="repeat" size={14} />
                       </button>
                     </div>
                     <p className="text-[#8893A2] text-xs mt-1.5">Передасте вручну — після створення пароль повторно показати не можна.</p>

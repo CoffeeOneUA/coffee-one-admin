@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon, type IconName } from '../components/Icon';
 
 interface Stats {
   products: number;
@@ -184,13 +185,13 @@ export default function DashboardPage() {
     setLoading(false);
   }
 
-  const STAT_CARDS = [
-    { icon: '🛍', label: 'Товарів у магазині', value: stats.products, color: 'bg-blue-50 text-blue-600' },
-    { icon: '🔍', label: 'Активних оголошень', value: stats.listings, color: 'bg-green-50 text-green-600' },
-    { icon: '⏳', label: 'На модерації', value: stats.pending, color: 'bg-amber-50 text-amber-600' },
-    { icon: '👥', label: 'Користувачів', value: stats.users, color: 'bg-purple-50 text-purple-600' },
-    { icon: '💰', label: 'Дохід за місяць', value: `${stats.monthRevenue.toLocaleString('uk-UA')} ₴`, color: 'bg-teal-50 text-teal-600' },
-    { icon: '📩', label: 'Нові заявки', value: stats.newLeads, color: 'bg-rose-50 text-rose-600' },
+  const STAT_CARDS: { icon: IconName; label: string; value: string | number; color: string }[] = [
+    { icon: 'bag', label: 'Товарів у магазині', value: stats.products, color: 'bg-blue-50 text-blue-600' },
+    { icon: 'storefront', label: 'Активних оголошень', value: stats.listings, color: 'bg-green-50 text-green-600' },
+    { icon: 'clock', label: 'На модерації', value: stats.pending, color: 'bg-amber-50 text-amber-600' },
+    { icon: 'users', label: 'Користувачів', value: stats.users, color: 'bg-purple-50 text-purple-600' },
+    { icon: 'wallet', label: 'Дохід за місяць', value: `${stats.monthRevenue.toLocaleString('uk-UA')} ₴`, color: 'bg-teal-50 text-teal-600' },
+    { icon: 'mail', label: 'Нові заявки', value: stats.newLeads, color: 'bg-rose-50 text-rose-600' },
   ];
 
   return (
@@ -203,8 +204,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-5 mb-8">
         {STAT_CARDS.map((card) => (
           <div key={card.label} className="bg-white rounded-2xl p-5 border border-[#E8EDF4] shadow-sm">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-4 ${card.color}`}>
-              {card.icon}
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${card.color}`}>
+              <Icon name={card.icon} size={20} />
             </div>
             <div className="text-2xl font-extrabold text-[#20303C] mb-1">
               {loading ? '—' : card.value}
@@ -222,14 +223,14 @@ export default function DashboardPage() {
               <a href="/moderation" className="text-[#187FD8] text-sm font-bold hover:underline">Усі →</a>
             </div>
             {!loading && pendingListings.length === 0 ? (
-              <p className="text-[#8893A2] text-sm">Немає оголошень, що очікують перевірки 🎉</p>
+              <p className="text-[#8893A2] text-sm inline-flex items-center gap-1.5"><Icon name="checkCircle" size={14} color="#1FA463" />Немає оголошень, що очікують перевірки</p>
             ) : (
               <div className="flex flex-col gap-1">
                 {pendingListings.map((l) => (
                   <a key={l.id} href="/moderation" className="flex items-center justify-between gap-3 py-2.5 border-b border-[#F1F4F8] last:border-0 hover:bg-[#F8FAFC] rounded-lg px-2 -mx-2">
                     <div className="min-w-0">
                       <div className="font-semibold text-[#20303C] text-sm truncate">{l.title}</div>
-                      <div className="text-[#8893A2] text-xs">📍 {l.city} · {timeAgo(l.created_at)}</div>
+                      <div className="text-[#8893A2] text-xs inline-flex items-center gap-1"><Icon name="pin" size={10} />{l.city} · {timeAgo(l.created_at)}</div>
                     </div>
                     <div className="font-bold text-[#20303C] text-sm shrink-0">{Number(l.price_uah).toLocaleString('uk-UA')} ₴</div>
                   </a>
@@ -353,42 +354,42 @@ export default function DashboardPage() {
         <h2 className="text-lg font-bold text-[#20303C] mb-4">Швидкі дії</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <a href="/moderation" className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl hover:bg-amber-100 transition-all">
-            <span className="text-2xl">🛡</span>
+            <Icon name="shield" size={22} color="#C8895A" />
             <div>
               <div className="font-bold text-[#20303C]">Модерація</div>
               <div className="text-[#8893A2] text-sm">{stats.pending} чекають</div>
             </div>
           </a>
           <a href="/leads" className="flex items-center gap-3 p-4 bg-rose-50 rounded-xl hover:bg-rose-100 transition-all">
-            <span className="text-2xl">📩</span>
+            <Icon name="mail" size={22} color="#E84B4B" />
             <div>
               <div className="font-bold text-[#20303C]">Заявки</div>
               <div className="text-[#8893A2] text-sm">{stats.newLeads} нових</div>
             </div>
           </a>
           <a href="/orders" className="flex items-center gap-3 p-4 bg-teal-50 rounded-xl hover:bg-teal-100 transition-all">
-            <span className="text-2xl">🧾</span>
+            <Icon name="package" size={22} color="#128A75" />
             <div>
               <div className="font-bold text-[#20303C]">Замовлення</div>
               <div className="text-[#8893A2] text-sm">Керувати</div>
             </div>
           </a>
           <a href="/products" className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all">
-            <span className="text-2xl">🛍</span>
+            <Icon name="bag" size={22} color="#1169B8" />
             <div>
               <div className="font-bold text-[#20303C]">Товари</div>
               <div className="text-[#8893A2] text-sm">Керувати каталогом</div>
             </div>
           </a>
           <a href="/listings" className="flex items-center gap-3 p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-all">
-            <span className="text-2xl">🔍</span>
+            <Icon name="storefront" size={22} color="#1FA463" />
             <div>
               <div className="font-bold text-[#20303C]">Оголошення</div>
               <div className="text-[#8893A2] text-sm">{stats.listings} активних</div>
             </div>
           </a>
           <a href="/users" className="flex items-center gap-3 p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-all">
-            <span className="text-2xl">👥</span>
+            <Icon name="users" size={22} color="#7B52D3" />
             <div>
               <div className="font-bold text-[#20303C]">Користувачі</div>
               <div className="text-[#8893A2] text-sm">{stats.users} зареєстровано</div>

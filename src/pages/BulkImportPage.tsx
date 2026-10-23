@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 // Той самий системний акаунт, що й у ListingsPage — від його імені
 // адмінка публікує оголошення маркетплейсу.
@@ -291,9 +292,10 @@ export default function BulkImportPage() {
           <button
             key={k}
             onClick={() => switchKind(k)}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold ${kind === k ? 'bg-[#187FD8] text-white' : 'bg-white text-[#546070] border border-[#D7DFEA]'}`}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold inline-flex items-center gap-2 ${kind === k ? 'bg-[#187FD8] text-white' : 'bg-white text-[#546070] border border-[#D7DFEA]'}`}
           >
-            {k === 'products' ? '🛍 Товари магазину' : '🔍 Маркетплейс'}
+            <Icon name={k === 'products' ? 'bag' : 'storefront'} size={15} />
+            {k === 'products' ? 'Товари магазину' : 'Маркетплейс'}
           </button>
         ))}
       </div>
@@ -301,8 +303,9 @@ export default function BulkImportPage() {
       <div className="bg-white rounded-2xl p-5 mb-5 border border-[#E5EAF1]">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-[#20303C]">Колонки файлу</h2>
-          <button onClick={() => downloadTemplate(kind)} className="px-4 py-2 rounded-xl text-sm font-bold bg-[#EAF3FC] text-[#187FD8] hover:bg-[#D9EAFA]">
-            ⬇ Завантажити шаблон
+          <button onClick={() => downloadTemplate(kind)} className="px-4 py-2 rounded-xl text-sm font-bold bg-[#EAF3FC] text-[#187FD8] hover:bg-[#D9EAFA] inline-flex items-center gap-1.5">
+            <Icon name="download" size={14} />
+            Завантажити шаблон
           </button>
         </div>
         <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-[#546070]">
@@ -323,8 +326,8 @@ export default function BulkImportPage() {
           <>
             <div className="mt-4 flex items-center gap-4 text-sm">
               <span className="font-bold text-[#20303C]">{fileName}</span>
-              <span className="text-green-600 font-bold">✓ готово: {valid.length}</span>
-              {invalid.length > 0 && <span className="text-red-600 font-bold">✗ з помилками: {invalid.length}</span>}
+              <span className="inline-flex items-center gap-1 text-green-600 font-bold"><Icon name="checkCircle" size={13} />готово: {valid.length}</span>
+              {invalid.length > 0 && <span className="inline-flex items-center gap-1 text-red-600 font-bold"><Icon name="xCircle" size={13} />з помилками: {invalid.length}</span>}
             </div>
 
             {invalid.length > 0 && (

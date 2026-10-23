@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 interface Category {
   id: string;
@@ -373,7 +374,7 @@ export default function ProductsPage() {
       ) : products.length === 0 ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="text-5xl mb-3">🛍</div>
+            <div className="flex justify-center mb-3"><Icon name="bag" size={40} color="#C2CDDA" /></div>
             <div className="text-xl font-bold text-[#20303C] mb-2">Товарів ще немає</div>
           </div>
         </div>
@@ -385,16 +386,16 @@ export default function ProductsPage() {
                 {p.photos && p.photos.length > 0 ? (
                   <img src={p.photos[0]} alt={p.title} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-5xl">☕</span>
+                  <Icon name="coffeeCup" size={40} color="#AFC3DB" />
                 )}
                 {p.is_coffee_one_seller && (
                   <div className="absolute top-0 left-0 right-0 bg-[#187FD8] text-white text-[11px] font-bold py-1 text-center">
-                    ☕ Продавець Coffee One
+                    Продавець Coffee One
                   </div>
                 )}
                 <div className={`absolute left-2 flex gap-1.5 ${p.is_coffee_one_seller ? 'top-8' : 'top-2'}`}>
                   {p.is_hit && <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-lg">Хіт</span>}
-                  {p.is_featured && <span className="bg-[#187FD8] text-white text-xs font-bold px-2 py-1 rounded-lg">⭐ Топ</span>}
+                  {p.is_featured && <span className="bg-[#187FD8] text-white text-xs font-bold px-2 py-1 rounded-lg inline-flex items-center gap-1"><Icon name="star" size={10} filled color="#fff" />Топ</span>}
                   {!p.in_stock && <span className="bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-lg">Немає в наявності</span>}
                 </div>
               </div>
@@ -633,9 +634,9 @@ export default function ProductsPage() {
                         )}
                         <button
                           onClick={() => removePhoto(url)}
-                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center"
                         >
-                          ✕
+                          <Icon name="close" size={11} color="#fff" />
                         </button>
                       </div>
                     ))}
@@ -694,9 +695,9 @@ export default function ProductsPage() {
                           </div>
                           <button
                             onClick={() => removeRecommendation(i)}
-                            className="text-red-400 hover:text-red-600 font-bold text-sm flex-shrink-0"
+                            className="text-red-400 hover:text-red-600 flex-shrink-0"
                           >
-                            ✕
+                            <Icon name="close" size={13} />
                           </button>
                         </div>
                       );

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
+import { categoryIcon } from '../lib/categoryIcons';
 
 interface Category {
   id: string;
@@ -133,13 +135,13 @@ export default function CategoriesPage() {
               }`}
             >
               <div className="flex items-center gap-3">
-                <span className="text-lg">{c.emoji}</span>
+                <Icon name={categoryIcon(c.slug)} size={17} color="#546070" />
                 <span className="font-semibold text-[#20303C]">{c.name}</span>
                 <span className="text-[#8893A2] text-xs">{c.slug}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
-                  <label className="text-xs font-semibold text-[#8893A2] whitespace-nowrap">🚚 Безпечна доставка</label>
+                  <label className="text-xs font-semibold text-[#8893A2] whitespace-nowrap flex items-center gap-1"><Icon name="truck" size={13} />Безпечна доставка</label>
                   <input
                     value={feeDrafts[c.id] ?? '0'}
                     onChange={(e) => setFeeDrafts((prev) => ({ ...prev, [c.id]: e.target.value.replace(/[^\d.]/g, '') }))}

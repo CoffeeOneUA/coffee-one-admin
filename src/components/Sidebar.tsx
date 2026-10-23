@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { supabaseAdmin as supabase } from '../lib/supabase';
 import { useAuth, type AdminRole } from '../lib/auth';
+import { Icon, type IconName } from './Icon';
 import logo from '../assets/coffeeone-logo.png';
 
 const ROLE_LABEL: Record<AdminRole, string> = {
@@ -10,31 +11,63 @@ const ROLE_LABEL: Record<AdminRole, string> = {
   moderator: 'Модератор',
 };
 
-const NAV_ITEMS = [
-  { path: '/', icon: '📊', label: 'Дашборд' },
-  { path: '/moderation', icon: '🛡', label: 'Модерація', badge: true },
-  { path: '/content', icon: '📝', label: 'Контент' },
-  { path: '/cities', icon: '📍', label: 'Міста' },
-  { path: '/leads', icon: '📞', label: 'Заявки' },
-  { path: '/warranties', icon: '🛡', label: 'Гарантії' },
-  { path: '/maintenance', icon: '🔧', label: 'ТО' },
-  { path: '/notifications', icon: '🔔', label: 'Сповіщення' },
-  { path: '/filters', icon: '⚙', label: 'Фільтри' },
-  { path: '/categories', icon: '🗂', label: 'Категорії' },
-  { path: '/brands', icon: '🏷', label: 'Бренди' },
-  { path: '/models', icon: '⚙', label: 'Моделі' },
-  { path: '/listings', icon: '🔍', label: 'Оголошення' },
-  { path: '/products', icon: '🛍', label: 'Товари' },
-  { path: '/bulk-import', icon: '📥', label: 'Масовий імпорт' },
-  { path: '/bloggers', icon: '🎥', label: 'Блогери' },
-  { path: '/orders', icon: '📦', label: 'Замовлення' },
-  { path: '/payment-settings', icon: '💳', label: 'Оплата' },
-  { path: '/support', icon: '🎧', label: 'Підтримка' },
-  { path: '/service-centers', icon: '🧰', label: 'Сервісні центри' },
-  { path: '/deals', icon: '🤝', label: 'Угоди' },
-  { path: '/users', icon: '👥', label: 'Користувачі' },
-  { path: '/site-settings', icon: '🌐', label: 'Сайт' },
-  { path: '/app-version', icon: '📱', label: 'Версія застосунку' },
+interface NavItem {
+  path: string;
+  icon: IconName;
+  label: string;
+  badge?: boolean;
+}
+
+// Ті самі 24 пункти й маршрути, що були — лише згруповані за змістом
+// замість суцільного списку, і з графічними іконками замість emoji.
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: 'Загальне',
+    items: [{ path: '/', icon: 'dashboard', label: 'Дашборд' }],
+  },
+  {
+    label: 'Контент і довідники',
+    items: [
+      { path: '/moderation', icon: 'shield', label: 'Модерація', badge: true },
+      { path: '/content', icon: 'document', label: 'Контент' },
+      { path: '/cities', icon: 'pin', label: 'Міста' },
+      { path: '/categories', icon: 'grid', label: 'Категорії' },
+      { path: '/brands', icon: 'tag', label: 'Бренди' },
+      { path: '/models', icon: 'box', label: 'Моделі' },
+      { path: '/filters', icon: 'sliders', label: 'Фільтри' },
+    ],
+  },
+  {
+    label: 'Каталог і продажі',
+    items: [
+      { path: '/products', icon: 'bag', label: 'Товари' },
+      { path: '/listings', icon: 'storefront', label: 'Оголошення' },
+      { path: '/bulk-import', icon: 'uploadTray', label: 'Масовий імпорт' },
+      { path: '/orders', icon: 'package', label: 'Замовлення' },
+      { path: '/bloggers', icon: 'video', label: 'Блогери' },
+    ],
+  },
+  {
+    label: 'Клієнти та сервіс',
+    items: [
+      { path: '/users', icon: 'users', label: 'Користувачі' },
+      { path: '/leads', icon: 'phone', label: 'Заявки' },
+      { path: '/deals', icon: 'repeat', label: 'Угоди' },
+      { path: '/warranties', icon: 'shieldCheck', label: 'Гарантії' },
+      { path: '/maintenance', icon: 'wrench', label: 'ТО' },
+      { path: '/service-centers', icon: 'toolbox', label: 'Сервісні центри' },
+      { path: '/support', icon: 'headset', label: 'Підтримка' },
+    ],
+  },
+  {
+    label: 'Система',
+    items: [
+      { path: '/notifications', icon: 'bell', label: 'Сповіщення' },
+      { path: '/payment-settings', icon: 'creditCard', label: 'Оплата' },
+      { path: '/site-settings', icon: 'globe', label: 'Сайт' },
+      { path: '/app-version', icon: 'smartphone', label: 'Версія застосунку' },
+    ],
+  },
 ];
 
 // Живий лічильник нових заявок на ТО + браузерне сповіщення (Notification
@@ -91,13 +124,17 @@ export default function Sidebar() {
   const maintenanceBadge = useMaintenanceBadge();
   const { admin, signOut } = useAuth();
 
-  const navItems =
+  const groups =
     admin?.role === 'superadmin'
-      ? [...NAV_ITEMS, { path: '/admin-users', icon: '🔑', label: 'Доступи' }]
-      : NAV_ITEMS;
+      ? NAV_GROUPS.map((g) =>
+          g.label === 'Система'
+            ? { ...g, items: [...g.items, { path: '/admin-users', icon: 'key' as IconName, label: 'Доступи' }] }
+            : g
+        )
+      : NAV_GROUPS;
 
   return (
-    <aside className="w-60 bg-[#20303C] h-screen flex flex-col fixed left-0 top-0 z-50">
+    <aside className="w-64 bg-[#20303C] h-screen flex flex-col fixed left-0 top-0 z-50">
       {/* Лого */}
       <div className="px-5 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -108,35 +145,39 @@ export default function Sidebar() {
 
       {/* Навігація */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        <div className="text-white/30 text-xs font-bold uppercase tracking-widest px-2 mb-3">
-          Головне
-        </div>
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-[#187FD8] text-white'
-                  : 'text-white/55 hover:bg-white/8 hover:text-white/85'
-              }`
-            }
-          >
-            <span className="text-lg">{item.icon}</span>
-            <span className="flex-1">{item.label}</span>
-            {item.badge && (
-              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                !
-              </span>
-            )}
-            {item.path === '/maintenance' && maintenanceBadge > 0 && (
-              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                {maintenanceBadge}
-              </span>
-            )}
-          </NavLink>
+        {groups.map((group) => (
+          <div key={group.label}>
+            <div className="text-white/30 text-[10.5px] font-extrabold uppercase tracking-widest px-2 mt-4 mb-2 first:mt-0">
+              {group.label}
+            </div>
+            {group.items.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === '/'}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 text-sm font-semibold transition-all ${
+                    isActive
+                      ? 'bg-[#187FD8] text-white'
+                      : 'text-white/55 hover:bg-white/8 hover:text-white/85'
+                  }`
+                }
+              >
+                <Icon name={item.icon} size={17} />
+                <span className="flex-1">{item.label}</span>
+                {item.badge && (
+                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    !
+                  </span>
+                )}
+                {item.path === '/maintenance' && maintenanceBadge > 0 && (
+                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {maintenanceBadge}
+                  </span>
+                )}
+              </NavLink>
+            ))}
+          </div>
         ))}
       </nav>
 
@@ -153,9 +194,9 @@ export default function Sidebar() {
           <button
             onClick={() => signOut()}
             title="Вийти"
-            className="text-white/40 hover:text-white text-lg shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="text-white/40 hover:text-white shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            ⏻
+            <Icon name="logout" size={16} />
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 interface MaintenanceRecord {
   id: string;
@@ -130,7 +131,7 @@ function RequestsTab() {
       ) : records.length === 0 ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="text-5xl mb-3">🔧</div>
+            <div className="flex justify-center mb-3"><Icon name="wrench" size={40} color="#C2CDDA" /></div>
             <div className="text-xl font-bold text-[#20303C] mb-2">Список порожній</div>
           </div>
         </div>
@@ -171,9 +172,9 @@ function RequestsTab() {
                       <button
                         onClick={() => markCompleted(r.id)}
                         disabled={!!actionLoading}
-                        className="bg-green-500 hover:bg-green-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all disabled:opacity-50"
+                        className="bg-green-500 hover:bg-green-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
                       >
-                        {actionLoading === r.id ? '⏳' : '✓ Виконано'}
+                        {actionLoading === r.id ? 'Зачекайте…' : (<><Icon name="checkCircle" size={12} />Виконано</>)}
                       </button>
                     )}
                   </td>

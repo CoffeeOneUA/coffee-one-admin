@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 interface FilterOption {
   id: string;
@@ -229,9 +230,9 @@ export default function FiltersPage() {
                     <span className="text-xs text-[#8893A2]">({o.value})</span>
                     <button
                       onClick={() => handleDeleteOption(o.id)}
-                      className="text-red-400 hover:text-red-600 font-bold text-sm"
+                      className="text-red-400 hover:text-red-600"
                     >
-                      ✕
+                      <Icon name="close" size={13} />
                     </button>
                   </div>
                 ))}

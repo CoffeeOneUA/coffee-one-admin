@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 interface City {
   id: string;
@@ -104,7 +105,7 @@ export default function CitiesPage() {
               }`}
             >
               <div className="flex items-center gap-3">
-                <span className="text-lg">📍</span>
+                <Icon name="pin" size={16} color="#8893A2" />
                 <span className="font-semibold text-[#20303C]">{city.name}</span>
                 {!city.is_active && (
                   <span className="bg-gray-100 text-gray-500 text-xs font-bold px-2 py-0.5 rounded-full">

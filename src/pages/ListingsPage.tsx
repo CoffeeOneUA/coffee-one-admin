@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 interface Model { id: string; brand_id: string; name: string }
 
@@ -332,7 +333,7 @@ export default function ListingsPage() {
       ) : filtered.length === 0 ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="text-5xl mb-3">🔍</div>
+            <div className="flex justify-center mb-3"><Icon name="storefront" size={40} color="#C2CDDA" /></div>
             <div className="text-xl font-bold text-[#20303C] mb-2">Оголошень немає</div>
           </div>
         </div>
@@ -344,33 +345,33 @@ export default function ListingsPage() {
                 {l.photos && l.photos.length > 0 ? (
                   <img src={l.photos[0]} alt={l.title} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-5xl">☕</span>
+                  <Icon name="coffeeCup" size={40} color="#AFC3DB" />
                 )}
                 {l.is_coffee_one_seller && (
                   <div className="absolute top-0 left-0 right-0 bg-[#187FD8] text-white text-[11px] font-bold py-1 text-center">
-                    ☕ Продавець Coffee One
+                    Продавець Coffee One
                   </div>
                 )}
                 <span className={`absolute ${l.is_coffee_one_seller ? 'top-8' : 'top-2'} left-2 text-xs font-bold px-2 py-1 rounded-lg ${STATUS_COLOR[l.status] ?? 'bg-gray-100 text-gray-500'}`}>
                   {STATUS_LABEL[l.status] ?? l.status}
                 </span>
                 {l.safe_payment_enabled && (
-                  <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[11px] font-bold px-2 py-1 rounded-lg">🔒 Безпечна оплата</span>
+                  <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[11px] font-bold px-2 py-1 rounded-lg inline-flex items-center gap-1"><Icon name="lock" size={11} color="#fff" />Безпечна оплата</span>
                 )}
               </div>
 
               <div className="p-4">
                 <div className="text-[#8893A2] text-xs font-semibold uppercase">{l.brands?.name} · {l.categories?.name}</div>
                 <div className="font-bold text-[#20303C] text-base leading-tight mt-0.5">{l.title}</div>
-                <div className="text-[#8893A2] text-sm mt-1">
-                  {l.profiles?.full_name ?? 'Без імені'} · 📍 {l.city}
+                <div className="text-[#8893A2] text-sm mt-1 inline-flex items-center gap-1">
+                  {l.profiles?.full_name ?? 'Без імені'} · <Icon name="pin" size={11} /> {l.city}
                 </div>
 
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <span className="font-extrabold text-[#20303C] text-lg">{Number(l.price_uah).toLocaleString('uk-UA')} ₴</span>
                   <span className="text-[#8893A2] text-xs">≈ ${Number(l.price_usd).toLocaleString()}</span>
                   {l.no_commission && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">💰 Без комісії</span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700"><Icon name="wallet" size={10} />Без комісії</span>
                   )}
                 </div>
 
@@ -404,7 +405,7 @@ export default function ListingsPage() {
                 aria-label="Закрити"
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8893A2] hover:bg-[#F1F5FB] hover:text-[#546070] transition-all shrink-0 disabled:opacity-50"
               >
-                ✕
+                <Icon name="close" size={15} />
               </button>
             </div>
             {!editingId && (
@@ -547,7 +548,7 @@ export default function ListingsPage() {
                         {i === 0 && (
                           <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">Головне</span>
                         )}
-                        <button onClick={() => removePhoto(url)} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">✕</button>
+                        <button onClick={() => removePhoto(url)} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center"><Icon name="close" size={11} color="#fff" /></button>
                       </div>
                     ))}
                   </div>
@@ -576,7 +577,7 @@ export default function ListingsPage() {
 
               <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
                 <div>
-                  <div className="text-sm font-semibold text-[#20303C]">🔒 Позначка «Безпечна оплата»</div>
+                  <div className="text-sm font-semibold text-[#20303C] inline-flex items-center gap-1.5"><Icon name="lock" size={13} />Позначка «Безпечна оплата»</div>
                   <div className="text-[#8893A2] text-xs mt-0.5">
                     Бейдж на картці оголошення. Саму кнопку «Купити з безпечною доставкою» бачать усі покупці незалежно від цього — покупець вмикає й оплачує її сам.
                   </div>
@@ -587,7 +588,7 @@ export default function ListingsPage() {
               {form.is_coffee_one_seller && (
                 <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
                   <div>
-                    <div className="text-sm font-semibold text-[#20303C]">💰 Без комісії</div>
+                    <div className="text-sm font-semibold text-[#20303C] inline-flex items-center gap-1.5"><Icon name="wallet" size={13} />Без комісії</div>
                     <div className="text-[#8893A2] text-xs mt-0.5">
                       Лише для товарів Coffee One. Вартість доставки при «Купити з безпечною доставкою» стає 0 ₴ — покупець платить рівно ціну товару, ми пояснюємо йому чому.
                     </div>
@@ -598,7 +599,7 @@ export default function ListingsPage() {
 
               {form.is_coffee_one_seller && (
                 <div className="py-2 border-t border-[#E8EDF4]">
-                  <label className="text-sm font-semibold text-[#20303C] mb-0.5 block">📞 Телефон продавця Coffee One</label>
+                  <label className="text-sm font-semibold text-[#20303C] mb-0.5 inline-flex items-center gap-1.5"><Icon name="phone" size={13} />Телефон продавця Coffee One</label>
                   <p className="text-[#8893A2] text-xs mb-2">
                     Спільний для всіх оголошень від Coffee One — зміна тут вплине на кнопку дзвінка на кожному з них.
                   </p>

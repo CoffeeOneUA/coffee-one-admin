@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 type LeadType =
   | 'grant'
@@ -204,7 +205,7 @@ export default function LeadsPage() {
       ) : filtered.length === 0 ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="text-5xl mb-3">📭</div>
+            <div className="flex justify-center mb-3"><Icon name="inbox" size={40} color="#C2CDDA" /></div>
             <div className="text-xl font-bold text-[#20303C] mb-2">Заявок немає</div>
           </div>
         </div>
@@ -261,9 +262,10 @@ export default function LeadsPage() {
                   </select>
                   <button
                     onClick={() => toggleHistory(lead.id)}
-                    className="text-xs font-semibold text-[#187FD8] hover:underline ml-auto"
+                    className="text-xs font-semibold text-[#187FD8] hover:underline ml-auto inline-flex items-center gap-1"
                   >
-                    {openHistoryId === lead.id ? 'Сховати історію ▲' : 'Історія статусів ▼'}
+                    {openHistoryId === lead.id ? 'Сховати історію' : 'Історія статусів'}
+                    <Icon name="chevronDown" size={11} className={openHistoryId === lead.id ? 'rotate-180' : ''} />
                   </button>
                 </div>
 

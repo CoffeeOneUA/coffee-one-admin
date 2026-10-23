@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
+import { Icon } from '../components/Icon';
 
 interface SiteSettings {
   site_name: string;
@@ -69,7 +70,7 @@ function UploadField({
         {value ? (
           <img src={value} alt="" className={previewClassName} />
         ) : (
-          <div className={`${previewClassName} bg-[#EAF2FC] flex items-center justify-center text-xl`}>☕</div>
+          <div className={`${previewClassName} bg-[#EAF2FC] flex items-center justify-center`}><Icon name="coffeeCup" size={20} color="#187FD8" /></div>
         )}
         <div>
           <input type="file" accept="image/*" onChange={(e) => handleUpload(e.target.files?.[0] ?? null)} disabled={uploading} className="text-sm" />
@@ -165,7 +166,7 @@ export default function SiteSettingsPage() {
 
         <UploadField
           label="Лого (шапка сайту)"
-          hint="Без лого показується ☕ за замовчуванням"
+          hint="Без лого показується іконка кавочашки за замовчуванням"
           value={settings.logo_url}
           onChange={(v) => set('logo_url', v)}
           pathPrefix="site/logo"
