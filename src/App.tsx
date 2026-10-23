@@ -27,6 +27,7 @@ import UsersPage from './pages/UsersPage';
 import SiteSettingsPage from './pages/SiteSettingsPage';
 import ListingsPage from './pages/ListingsPage';
 import AppVersionPage from './pages/AppVersionPage';
+import BulkImportPage from './pages/BulkImportPage';
 
 export default function App() {
   return (
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="models" element={<ModelsPage />} />
             <Route path="listings" element={<ListingsPage />} />
             <Route path="products" element={<ProductsPage />} />
+            <Route path="bulk-import" element={<BulkImportPage />} />
             <Route path="bloggers" element={<BloggersPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="payment-settings" element={<PaymentSettingsPage />} />

@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { path: '/models', icon: '⚙', label: 'Моделі' },
   { path: '/listings', icon: '🔍', label: 'Оголошення' },
   { path: '/products', icon: '🛍', label: 'Товари' },
+  { path: '/bulk-import', icon: '📥', label: 'Масовий імпорт' },
   { path: '/bloggers', icon: '🎥', label: 'Блогери' },
   { path: '/orders', icon: '📦', label: 'Замовлення' },
   { path: '/payment-settings', icon: '💳', label: 'Оплата' },
