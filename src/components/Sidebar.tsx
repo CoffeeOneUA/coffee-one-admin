@@ -80,11 +80,11 @@ function useMaintenanceBadge() {
     let mounted = true;
 
     async function fetchCount() {
-      const { count: c } = await supabase
-        .from('maintenance_records')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'ordered');
-      if (mounted) setCount(c ?? 0);
+      const [{ count: ordered }, { count: unscheduled }] = await Promise.all([
+        supabase.from('maintenance_records').select('id', { count: 'exact', head: true }).eq('status', 'ordered'),
+        supabase.from('unscheduled_maintenance_requests').select('id', { count: 'exact', head: true }).eq('status', 'requested'),
+      ]);
+      if (mounted) setCount((ordered ?? 0) + (unscheduled ?? 0));
     }
     fetchCount();
 
@@ -111,9 +111,26 @@ function useMaintenanceBadge() {
       )
       .subscribe();
 
+    const unscheduledChannel = supabase
+      .channel('unscheduled_maintenance_admin_badge')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'unscheduled_maintenance_requests' },
+        (payload: any) => {
+          fetchCount();
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            new Notification('Заявка на позапланове ТО', {
+              body: `${payload.new?.equipment_name ?? 'Обладнання'} — очікує на обробку`,
+            });
+          }
+        },
+      )
+      .subscribe();
+
     return () => {
       mounted = false;
       supabase.removeChannel(channel);
+      supabase.removeChannel(unscheduledChannel);
     };
   }, []);
 

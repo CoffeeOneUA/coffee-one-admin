@@ -188,6 +188,154 @@ function RequestsTab() {
   );
 }
 
+interface UnscheduledRequest {
+  id: string;
+  warranty_id: string;
+  equipment_name: string | null;
+  status: 'requested' | 'agreed' | 'in_progress' | 'completed';
+  requested_at: string;
+  completed_at: string | null;
+  warranties: { client_name: string | null; client_phone: string | null } | null;
+}
+
+const UNSCHEDULED_STATUS_LABEL: Record<UnscheduledRequest['status'], string> = {
+  requested: 'Заявку прийнято',
+  agreed: 'Погоджено. Очікуємо на обладнання',
+  in_progress: 'ТО в процесі виконання',
+  completed: 'ТО успішно виконано',
+};
+
+const UNSCHEDULED_STATUS_COLOR: Record<UnscheduledRequest['status'], string> = {
+  requested: 'bg-amber-100 text-amber-700',
+  agreed: 'bg-blue-100 text-blue-700',
+  in_progress: 'bg-indigo-100 text-indigo-700',
+  completed: 'bg-green-100 text-green-700',
+};
+
+// Наступний крок статусу + що саме треба оновити в БД для кожного переходу.
+const UNSCHEDULED_NEXT: Record<Exclude<UnscheduledRequest['status'], 'completed'>, {
+  next: UnscheduledRequest['status'];
+  label: string;
+  timeField: 'agreed_at' | 'in_progress_at' | 'completed_at';
+}> = {
+  requested: { next: 'agreed', label: 'Погодити', timeField: 'agreed_at' },
+  agreed: { next: 'in_progress', label: 'В процесі виконання', timeField: 'in_progress_at' },
+  in_progress: { next: 'completed', label: 'Виконано', timeField: 'completed_at' },
+};
+
+function UnscheduledTab() {
+  const [requests, setRequests] = useState<UnscheduledRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  async function fetchRequests() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('unscheduled_maintenance_requests')
+      .select('*, warranties(client_name, client_phone)')
+      .order('requested_at', { ascending: false });
+
+    if (!error) setRequests(data ?? []);
+    setLoading(false);
+  }
+
+  async function advance(req: UnscheduledRequest) {
+    if (req.status === 'completed') return;
+    const step = UNSCHEDULED_NEXT[req.status];
+    setActionLoading(req.id);
+
+    const { error } = await supabase
+      .from('unscheduled_maintenance_requests')
+      .update({ status: step.next, [step.timeField]: new Date().toISOString() })
+      .eq('id', req.id);
+
+    if (!error) {
+      // Позапланове ТО виконано — скидаємо лічильник планового ТО: наступні
+      // 3/6/12-місячні нагадування рахуються наново від цієї дати.
+      if (step.next === 'completed') {
+        await supabase
+          .from('warranties')
+          .update({ last_service_at: new Date().toISOString() })
+          .eq('id', req.warranty_id);
+      }
+      setRequests((prev) => prev.map((r) => (r.id === req.id ? { ...r, status: step.next } : r)));
+    }
+    setActionLoading(null);
+  }
+
+  function formatDate(dateStr: string | null) {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-[#8893A2] font-medium">Завантаження…</div>
+      </div>
+    );
+  }
+
+  if (requests.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="flex justify-center mb-3"><Icon name="wrench" size={40} color="#C2CDDA" /></div>
+          <div className="text-xl font-bold text-[#20303C] mb-2">Заявок немає</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#E8EDF4] shadow-sm overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left text-[#8893A2] text-xs uppercase tracking-widest border-b border-[#E8EDF4]">
+            <th className="px-5 py-3 font-bold">Клієнт</th>
+            <th className="px-5 py-3 font-bold">Обладнання</th>
+            <th className="px-5 py-3 font-bold">Подано</th>
+            <th className="px-5 py-3 font-bold">Статус</th>
+            <th className="px-5 py-3 font-bold" />
+          </tr>
+        </thead>
+        <tbody>
+          {requests.map((r) => (
+            <tr key={r.id} className="border-b border-[#E8EDF4] last:border-0">
+              <td className="px-5 py-4">
+                <div className="font-semibold text-[#20303C]">{r.warranties?.client_name ?? '—'}</div>
+                <div className="text-[#8893A2] text-xs">{r.warranties?.client_phone ?? '—'}</div>
+              </td>
+              <td className="px-5 py-4 text-[#20303C]">{r.equipment_name ?? '—'}</td>
+              <td className="px-5 py-4 text-[#546070]">{formatDate(r.requested_at)}</td>
+              <td className="px-5 py-4">
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${UNSCHEDULED_STATUS_COLOR[r.status]}`}>
+                  {UNSCHEDULED_STATUS_LABEL[r.status]}
+                </span>
+              </td>
+              <td className="px-5 py-4">
+                {r.status !== 'completed' && (
+                  <button
+                    onClick={() => advance(r)}
+                    disabled={!!actionLoading}
+                    className="bg-[#187FD8] hover:bg-[#1169B8] text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
+                  >
+                    {actionLoading === r.id ? 'Зачекайте…' : (<><Icon name="checkCircle" size={12} />{UNSCHEDULED_NEXT[r.status].label}</>)}
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function PricesTab() {
   const [settings, setSettings] = useState<Settings>({ price_3m_uah: 0, price_6m_uah: 0, price_12m_uah: 0 });
   const [loading, setLoading] = useState(true);
@@ -279,23 +427,24 @@ function PricesTab() {
 }
 
 export default function MaintenancePage() {
-  const [tab, setTab] = useState<'requests' | 'prices'>('requests');
+  const [tab, setTab] = useState<'requests' | 'unscheduled' | 'prices'>('requests');
 
   return (
     <div className="p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-[#20303C]">Технічне обслуговування</h1>
         <p className="text-[#8893A2] mt-1">
-          Заявки на планове ТО кавомашин (3 / 6 / 12 місяців від активації гарантії) та ціни на них
+          Заявки на планове ТО кавомашин (3 / 6 / 12 місяців від активації гарантії), позапланове ТО від клієнтів та ціни
         </p>
       </div>
 
       <div className="flex gap-2 mb-6">
         <Tab id="requests" label="Заявки" active={tab === 'requests'} onClick={() => setTab('requests')} />
+        <Tab id="unscheduled" label="Позапланове ТО від клієнтів" active={tab === 'unscheduled'} onClick={() => setTab('unscheduled')} />
         <Tab id="prices" label="Ціни" active={tab === 'prices'} onClick={() => setTab('prices')} />
       </div>
 
-      {tab === 'requests' ? <RequestsTab /> : <PricesTab />}
+      {tab === 'requests' ? <RequestsTab /> : tab === 'unscheduled' ? <UnscheduledTab /> : <PricesTab />}
     </div>
   );
 }
