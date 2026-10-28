@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
 import { Icon } from '../components/Icon';
+import { LeadsList } from '../components/LeadsList';
 
 interface MaintenanceRecord {
   id: string;
@@ -427,24 +428,33 @@ function PricesTab() {
 }
 
 export default function MaintenancePage() {
-  const [tab, setTab] = useState<'requests' | 'unscheduled' | 'prices'>('requests');
+  const [tab, setTab] = useState<'requests' | 'unscheduled' | 'serviceLeads' | 'prices'>('requests');
 
   return (
     <div className="p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-[#20303C]">Технічне обслуговування</h1>
         <p className="text-[#8893A2] mt-1">
-          Заявки на планове ТО кавомашин (3 / 6 / 12 місяців від активації гарантії), позапланове ТО від клієнтів та ціни
+          Заявки на планове ТО кавомашин (3 / 6 / 12 місяців від активації гарантії), позапланове ТО від клієнтів, сервісні звернення та ціни
         </p>
       </div>
 
       <div className="flex gap-2 mb-6">
         <Tab id="requests" label="Заявки" active={tab === 'requests'} onClick={() => setTab('requests')} />
         <Tab id="unscheduled" label="Позапланове ТО від клієнтів" active={tab === 'unscheduled'} onClick={() => setTab('unscheduled')} />
+        <Tab id="serviceLeads" label="Заявки на сервіс" active={tab === 'serviceLeads'} onClick={() => setTab('serviceLeads')} />
         <Tab id="prices" label="Ціни" active={tab === 'prices'} onClick={() => setTab('prices')} />
       </div>
 
-      {tab === 'requests' ? <RequestsTab /> : tab === 'unscheduled' ? <UnscheduledTab /> : <PricesTab />}
+      {tab === 'requests' ? (
+        <RequestsTab />
+      ) : tab === 'unscheduled' ? (
+        <UnscheduledTab />
+      ) : tab === 'serviceLeads' ? (
+        <LeadsList types={['service']} showTypeTabs={false} emptyTitle="Сервісних заявок немає" />
+      ) : (
+        <PricesTab />
+      )}
     </div>
   );
 }
