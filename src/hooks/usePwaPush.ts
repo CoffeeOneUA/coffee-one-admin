@@ -8,11 +8,17 @@ import { useAuth } from '../lib/auth';
 // (нема сенсу навіть пробувати в середовищах без підтримки — просто
 // лишаємо кнопку неактивною).
 
-function urlBase64ToUint8Array(base64: string): Uint8Array {
+function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
   const base64Safe = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
   const raw = atob(base64Safe);
-  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+  // new Uint8Array(length) (на відміну від Uint8Array.from) гарантовано
+  // прив'язаний до звичайного ArrayBuffer — TS 6 інакше виводить
+  // ArrayBufferLike (сумісний і з SharedArrayBuffer), що не підходить під
+  // applicationServerKey: BufferSource.
+  const array = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) array[i] = raw.charCodeAt(i);
+  return array;
 }
 
 export function usePwaPush() {
