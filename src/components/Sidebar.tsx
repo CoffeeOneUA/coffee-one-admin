@@ -66,6 +66,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { path: '/payment-settings', icon: 'creditCard', label: 'Оплата' },
       { path: '/site-settings', icon: 'globe', label: 'Сайт' },
       { path: '/app-version', icon: 'smartphone', label: 'Версія застосунку' },
+      { path: '/it-dashboard', icon: 'clipboard', label: 'IT Дашборд' },
     ],
   },
 ];

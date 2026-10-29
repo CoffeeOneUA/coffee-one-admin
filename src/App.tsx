@@ -28,6 +28,7 @@ import SiteSettingsPage from './pages/SiteSettingsPage';
 import ListingsPage from './pages/ListingsPage';
 import AppVersionPage from './pages/AppVersionPage';
 import BulkImportPage from './pages/BulkImportPage';
+import ITDashboardPage from './pages/ITDashboardPage';
 
 export default function App() {
   return (
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="site-settings" element={<SiteSettingsPage />} />
             <Route path="app-version" element={<AppVersionPage />} />
             <Route path="users" element={<UsersPage />} />
+            <Route path="it-dashboard" element={<ITDashboardPage />} />
             <Route
               path="admin-users"
               element={
