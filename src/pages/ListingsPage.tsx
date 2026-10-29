@@ -301,7 +301,7 @@ export default function ListingsPage() {
   const filtered = filter === 'all' ? listings : listings.filter((l) => l.status === filter);
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-[#20303C]">Оголошення</h1>

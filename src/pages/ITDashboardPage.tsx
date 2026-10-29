@@ -359,7 +359,7 @@ export default function ITDashboardPage() {
   const completed = tasks.filter((t) => t.percent >= 100);
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-extrabold text-[#20303C]">IT Дашборд</h1>

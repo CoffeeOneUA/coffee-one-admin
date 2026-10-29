@@ -100,7 +100,7 @@ export default function PaymentSettingsPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <div className="text-[#8893A2]">Завантаження…</div>
       </div>
     );
@@ -111,7 +111,7 @@ export default function PaymentSettingsPage() {
   const secretType = showSecrets ? 'text' : 'password';
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-[#20303C]">Оплата</h1>

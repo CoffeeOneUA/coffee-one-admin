@@ -96,7 +96,7 @@ export default function ModerationPage() {
   ];
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       {/* Заголовок */}
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-[#20303C]">Модерація оголошень</h1>

@@ -143,7 +143,7 @@ export default function SiteSettingsPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <div className="text-[#8893A2]">Завантаження…</div>
       </div>
     );
@@ -152,7 +152,7 @@ export default function SiteSettingsPage() {
   const inputClass = 'w-full border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]';
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-[#20303C]">Сайт</h1>
         <p className="text-[#8893A2] mt-1">Брендинг, тексти й SEO веб-версії маркетплейсу (coffeeone.com.ua)</p>

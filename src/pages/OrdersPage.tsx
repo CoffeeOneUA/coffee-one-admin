@@ -109,7 +109,7 @@ export default function OrdersPage() {
   ];
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-[#20303C]">Замовлення</h1>
         <p className="text-[#8893A2] mt-1">Оплата за реквізитами — після оформлення звʼяжись і надай реквізити</p>

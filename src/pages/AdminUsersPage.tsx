@@ -189,7 +189,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-[#20303C]">Доступи</h1>

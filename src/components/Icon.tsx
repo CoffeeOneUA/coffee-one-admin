@@ -54,7 +54,8 @@ export type IconName =
   | 'bean'
   | 'home'
   | 'truck'
-  | 'download';
+  | 'download'
+  | 'menu';
 
 interface IconProps {
   name: IconName;
@@ -131,6 +132,14 @@ function renderIcon(name: IconName, p: any, color: string, pf: any) {
           <circle cx="15" cy="12" r="2" fill="#fff" stroke={color} strokeWidth={p.strokeWidth} />
           <line x1="4" y1="18" x2="20" y2="18" {...p} />
           <circle cx="11" cy="18" r="2" fill="#fff" stroke={color} strokeWidth={p.strokeWidth} />
+        </>
+      );
+    case 'menu':
+      return (
+        <>
+          <line x1="4" y1="6" x2="20" y2="6" {...p} />
+          <line x1="4" y1="12" x2="20" y2="12" {...p} />
+          <line x1="4" y1="18" x2="20" y2="18" {...p} />
         </>
       );
     case 'grid':

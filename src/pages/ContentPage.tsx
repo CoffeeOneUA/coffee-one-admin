@@ -55,7 +55,7 @@ export default function ContentPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-[#20303C]">Контент застосунку</h1>
         <p className="text-[#8893A2] mt-1">Тексти, які редагуються тут, одразу оновлюються в мобільному застосунку</p>

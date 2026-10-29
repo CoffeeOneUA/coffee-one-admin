@@ -137,8 +137,8 @@ function RequestsTab() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#E8EDF4] shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-2xl border border-[#E8EDF4] shadow-sm overflow-x-auto">
+          <table className="w-full text-sm min-w-[760px]">
             <thead>
               <tr className="text-left text-[#8893A2] text-xs uppercase tracking-widest border-b border-[#E8EDF4]">
                 <th className="px-5 py-3 font-bold">Клієнт</th>
@@ -293,8 +293,8 @@ function UnscheduledTab() {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E8EDF4] shadow-sm overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="bg-white rounded-2xl border border-[#E8EDF4] shadow-sm overflow-x-auto">
+      <table className="w-full text-sm min-w-[640px]">
         <thead>
           <tr className="text-left text-[#8893A2] text-xs uppercase tracking-widest border-b border-[#E8EDF4]">
             <th className="px-5 py-3 font-bold">Клієнт</th>
@@ -431,7 +431,7 @@ export default function MaintenancePage() {
   const [tab, setTab] = useState<'requests' | 'unscheduled' | 'serviceLeads' | 'prices'>('requests');
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-[#20303C]">Технічне обслуговування</h1>
         <p className="text-[#8893A2] mt-1">

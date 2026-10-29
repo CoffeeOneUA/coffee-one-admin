@@ -138,7 +138,12 @@ function useMaintenanceBadge() {
   return count;
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
+}
+
+export default function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
   const maintenanceBadge = useMaintenanceBadge();
   const { admin, signOut } = useAuth();
 
@@ -152,72 +157,94 @@ export default function Sidebar() {
       : NAV_GROUPS;
 
   return (
-    <aside className="w-64 bg-[#20303C] h-screen flex flex-col fixed left-0 top-0 z-50">
-      {/* Лого */}
-      <div className="px-5 py-6 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <img src={logo} alt="Coffee One" className="h-9 w-auto" />
-          <div className="text-white/40 text-xs">Admin Panel</div>
-        </div>
-      </div>
+    <>
+      {/* Затемнення позаду висувного меню — лише на мобільних, клік закриває */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
 
-      {/* Навігація */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        {groups.map((group) => (
-          <div key={group.label}>
-            <div className="text-white/30 text-[10.5px] font-extrabold uppercase tracking-widest px-2 mt-4 mb-2 first:mt-0">
-              {group.label}
-            </div>
-            {group.items.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.path === '/'}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 text-sm font-semibold transition-all ${
-                    isActive
-                      ? 'bg-[#187FD8] text-white'
-                      : 'text-white/55 hover:bg-white/8 hover:text-white/85'
-                  }`
-                }
-              >
-                <Icon name={item.icon} size={17} />
-                <span className="flex-1">{item.label}</span>
-                {item.badge && (
-                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    !
-                  </span>
-                )}
-                {item.path === '/maintenance' && maintenanceBadge > 0 && (
-                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {maintenanceBadge}
-                  </span>
-                )}
-              </NavLink>
-            ))}
-          </div>
-        ))}
-      </nav>
-
-      {/* Користувач */}
-      <div className="px-3 py-4 border-t border-white/10">
-        <div className="flex items-center gap-3 px-3 py-2 rounded-xl group">
-          <div className="w-8 h-8 rounded-full bg-[#187FD8] flex items-center justify-center text-white font-bold text-sm shrink-0">
-            {(admin?.full_name || admin?.email || '?').charAt(0).toUpperCase()}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-white text-sm font-semibold truncate">{admin?.full_name || admin?.email || '—'}</div>
-            <div className="text-white/40 text-xs">{admin ? ROLE_LABEL[admin.role] : ''}</div>
+      <aside
+        className={`w-64 bg-[#20303C] h-screen flex flex-col fixed left-0 top-0 z-50 transition-transform duration-200 ease-out
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+      >
+        {/* Лого */}
+        <div className="px-5 py-6 border-b border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="Coffee One" className="h-9 w-auto" />
+            <div className="text-white/40 text-xs">Admin Panel</div>
           </div>
           <button
-            onClick={() => signOut()}
-            title="Вийти"
-            className="text-white/40 hover:text-white shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={onCloseMobile}
+            className="lg:hidden text-white/60 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10"
+            aria-label="Закрити меню"
           >
-            <Icon name="logout" size={16} />
+            <Icon name="close" size={18} />
           </button>
         </div>
-      </div>
-    </aside>
+
+        {/* Навігація */}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+          {groups.map((group) => (
+            <div key={group.label}>
+              <div className="text-white/30 text-[10.5px] font-extrabold uppercase tracking-widest px-2 mt-4 mb-2 first:mt-0">
+                {group.label}
+              </div>
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.path === '/'}
+                  onClick={onCloseMobile}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 text-sm font-semibold transition-all ${
+                      isActive
+                        ? 'bg-[#187FD8] text-white'
+                        : 'text-white/55 hover:bg-white/8 hover:text-white/85'
+                    }`
+                  }
+                >
+                  <Icon name={item.icon} size={17} />
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge && (
+                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      !
+                    </span>
+                  )}
+                  {item.path === '/maintenance' && maintenanceBadge > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {maintenanceBadge}
+                    </span>
+                  )}
+                </NavLink>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        {/* Користувач */}
+        <div className="px-3 py-4 border-t border-white/10">
+          <div className="flex items-center gap-3 px-3 py-2 rounded-xl group">
+            <div className="w-8 h-8 rounded-full bg-[#187FD8] flex items-center justify-center text-white font-bold text-sm shrink-0">
+              {(admin?.full_name || admin?.email || '?').charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-white text-sm font-semibold truncate">{admin?.full_name || admin?.email || '—'}</div>
+              <div className="text-white/40 text-xs">{admin ? ROLE_LABEL[admin.role] : ''}</div>
+            </div>
+            <button
+              onClick={() => signOut()}
+              title="Вийти"
+              className="text-white/40 hover:text-white shrink-0 opacity-70 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+            >
+              <Icon name="logout" size={16} />
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }

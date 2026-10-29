@@ -338,8 +338,8 @@ export default function BulkImportPage() {
               </div>
             )}
 
-            <div className="mt-3 max-h-64 overflow-y-auto rounded-xl border border-[#E5EAF1]">
-              <table className="w-full text-sm">
+            <div className="mt-3 max-h-64 overflow-auto rounded-xl border border-[#E5EAF1]">
+              <table className="w-full text-sm min-w-[480px]">
                 <thead className="bg-[#F5F7FA] text-left text-[#546070]">
                   <tr><th className="p-2">Рядок</th><th className="p-2">Назва</th><th className="p-2">$</th><th className="p-2">₴</th><th className="p-2">Стан</th></tr>
                 </thead>

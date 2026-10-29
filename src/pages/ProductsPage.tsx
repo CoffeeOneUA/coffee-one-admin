@@ -356,7 +356,7 @@ export default function ProductsPage() {
   const modelsForBrand = models.filter((m) => m.brand_id === form.brand_id);
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-[#20303C]">Товари</h1>

@@ -195,7 +195,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-extrabold text-[#20303C]">Дашборд</h1>
         <p className="text-[#8893A2] mt-1">Огляд стану Coffee One</p>
@@ -352,7 +352,7 @@ export default function DashboardPage() {
 
       <div className="bg-white rounded-2xl border border-[#E8EDF4] shadow-sm p-6">
         <h2 className="text-lg font-bold text-[#20303C] mb-4">Швидкі дії</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <a href="/moderation" className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl hover:bg-amber-100 transition-all">
             <Icon name="shield" size={22} color="#C8895A" />
             <div>
