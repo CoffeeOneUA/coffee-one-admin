@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../../lib/supabase';
 import { Icon } from '../../components/Icon';
+import { pluralGroups } from '../../lib/pluralize';
 
 interface Listing {
   id: string;
@@ -208,7 +209,7 @@ export default function ModerationPage() {
                   </span>
                   {listing.groups && (
                     <span className="bg-[#F1F5FB] text-[#546070] text-xs font-semibold px-2.5 py-1 rounded-lg">
-                      {listing.groups} групи
+                      {listing.groups} {pluralGroups(listing.groups)}
                     </span>
                   )}
                   {listing.year && (
