@@ -3,6 +3,12 @@ import { supabaseAdmin as supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Icon } from '../components/Icon';
 import { usePwaPush } from '../hooks/usePwaPush';
+import { useAdmins, adminLabel, type AdminLite } from '../hooks/useAdmins';
+import { notifyItDashboard, YURII_EMAIL } from '../lib/itNotify';
+import { TaskComments } from '../components/TaskComments';
+
+type Currency = 'UAH' | 'USD';
+const CURRENCY_SIGN: Record<Currency, string> = { UAH: '₴', USD: '$' };
 
 interface ITTask {
   id: string;
@@ -14,6 +20,11 @@ interface ITTask {
   completed_at: string | null;
   created_by: string | null;
   created_at: string;
+  assignee_admin_id: string | null;
+  budget_amount: number | null;
+  budget_currency: Currency | null;
+  budget_approved_at: string | null;
+  budget_approved_by: string | null;
 }
 
 function toLocalInputValue(iso: string): string {
@@ -59,6 +70,23 @@ function ProgressBar({ percent }: { percent: number }) {
   );
 }
 
+function BudgetBadge({ task }: { task: ITTask }) {
+  if (task.budget_amount == null || !task.budget_currency) return null;
+  const approved = !!task.budget_approved_at;
+  return (
+    <span
+      className={`text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1 ${
+        approved ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+      }`}
+      title={approved ? `Погоджено Юрієм ${formatDateTime(task.budget_approved_at!)}` : 'Очікує погодження Юрієм'}
+    >
+      <Icon name="wallet" size={11} />
+      {task.budget_amount.toLocaleString('uk-UA')} {CURRENCY_SIGN[task.budget_currency]}
+      {!approved && ' · не погоджено'}
+    </span>
+  );
+}
+
 function PushToggle() {
   const { supported, permission, subscribed, busy, subscribe, unsubscribe } = usePwaPush();
 
@@ -93,13 +121,21 @@ function PushToggle() {
 interface TaskFormState {
   title: string;
   description: string;
-  deadline: string; // datetime-local value
+  deadline: string;
+  assigneeId: string;
+  budgetAmount: string;
+  budgetCurrency: Currency;
+  hasBudget: boolean;
 }
 
-const emptyForm: TaskFormState = { title: '', description: '', deadline: '' };
+const emptyForm: TaskFormState = {
+  title: '', description: '', deadline: '', assigneeId: '',
+  budgetAmount: '', budgetCurrency: 'UAH', hasBudget: false,
+};
 
-function NewTaskForm({ onCreated }: { onCreated: () => void }) {
+function NewTaskForm({ admins, onCreated }: { admins: AdminLite[]; onCreated: () => void }) {
   const { admin } = useAuth();
+  const isSuperadmin = admin?.role === 'superadmin';
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<TaskFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -110,17 +146,46 @@ function NewTaskForm({ onCreated }: { onCreated: () => void }) {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from('it_tasks').insert({
-      title: form.title.trim(),
-      description: form.description.trim() || null,
-      deadline_at: new Date(form.deadline).toISOString(),
-      created_by: admin?.id ?? null,
-    });
+
+    const budgetAmount = form.hasBudget && form.budgetAmount ? Number(form.budgetAmount) : null;
+    const { data: inserted, error } = await supabase
+      .from('it_tasks')
+      .insert({
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        deadline_at: new Date(form.deadline).toISOString(),
+        created_by: admin?.id ?? null,
+        assignee_admin_id: isSuperadmin && form.assigneeId ? form.assigneeId : null,
+        budget_amount: budgetAmount,
+        budget_currency: budgetAmount != null ? form.budgetCurrency : null,
+      })
+      .select()
+      .single();
+
     setSaving(false);
-    if (error) {
-      alert(`Не вдалося створити задачу: ${error.message}`);
+    if (error || !inserted) {
+      alert(`Не вдалося створити задачу: ${error?.message}`);
       return;
     }
+
+    const superadminIds = admins.filter((a) => a.role === 'superadmin').map((a) => a.id);
+    if (superadminIds.length > 0) {
+      notifyItDashboard('Нова IT-задача', form.title.trim(), superadminIds);
+    }
+    if (isSuperadmin && form.assigneeId) {
+      notifyItDashboard('Вам призначено задачу', form.title.trim(), [form.assigneeId]);
+    }
+    if (budgetAmount != null) {
+      const yurii = admins.find((a) => a.email === YURII_EMAIL);
+      if (yurii) {
+        notifyItDashboard(
+          'Потрібне погодження кошторису',
+          `«${form.title.trim()}» — ${budgetAmount.toLocaleString('uk-UA')} ${CURRENCY_SIGN[form.budgetCurrency]}`,
+          [yurii.id],
+        );
+      }
+    }
+
     setForm(emptyForm);
     setOpen(false);
     onCreated();
@@ -162,6 +227,54 @@ function NewTaskForm({ onCreated }: { onCreated: () => void }) {
           className="border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
         />
       </div>
+
+      {isSuperadmin && (
+        <div>
+          <label className="text-xs font-semibold text-[#8893A2] block mb-1">Відповідальний</label>
+          <select
+            value={form.assigneeId}
+            onChange={(e) => setForm((f) => ({ ...f, assigneeId: e.target.value }))}
+            className="border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+          >
+            <option value="">Не визначено</option>
+            {admins.map((a) => (
+              <option key={a.id} value={a.id}>{adminLabel(a)}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div>
+        <label className="text-xs font-semibold text-[#8893A2] flex items-center gap-2 mb-1">
+          <input
+            type="checkbox"
+            checked={form.hasBudget}
+            onChange={(e) => setForm((f) => ({ ...f, hasBudget: e.target.checked }))}
+          />
+          Кошторис
+        </label>
+        {form.hasBudget && (
+          <div className="flex gap-2">
+            <input
+              type="number"
+              min={0}
+              value={form.budgetAmount}
+              onChange={(e) => setForm((f) => ({ ...f, budgetAmount: e.target.value }))}
+              placeholder="Сума"
+              className="border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+            />
+            <select
+              value={form.budgetCurrency}
+              onChange={(e) => setForm((f) => ({ ...f, budgetCurrency: e.target.value as Currency }))}
+              className="border border-[#E8EDF4] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+            >
+              <option value="UAH">₴ UAH</option>
+              <option value="USD">$ USD</option>
+            </select>
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-2 mt-1">
         <button
           onClick={handleCreate}
@@ -181,13 +294,21 @@ function NewTaskForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-function TaskCard({ task, canEdit, onChanged }: { task: ITTask; canEdit: boolean; onChanged: () => void }) {
+function TaskCard({ task, canEdit, admins, onChanged }: { task: ITTask; canEdit: boolean; admins: AdminLite[]; onChanged: () => void }) {
+  const { admin } = useAuth();
   const [editing, setEditing] = useState(false);
   const [percent, setPercent] = useState(task.percent);
   const [deadline, setDeadline] = useState(toLocalInputValue(task.deadline_at));
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? '');
+  const [assigneeId, setAssigneeId] = useState(task.assignee_admin_id ?? '');
+  const [hasBudget, setHasBudget] = useState(task.budget_amount != null);
+  const [budgetAmount, setBudgetAmount] = useState(task.budget_amount != null ? String(task.budget_amount) : '');
+  const [budgetCurrency, setBudgetCurrency] = useState<Currency>(task.budget_currency ?? 'UAH');
   const [saving, setSaving] = useState(false);
+  const [approving, setApproving] = useState(false);
+
+  const isYurii = admin?.email === YURII_EMAIL;
 
   useEffect(() => {
     if (!editing) {
@@ -195,12 +316,21 @@ function TaskCard({ task, canEdit, onChanged }: { task: ITTask; canEdit: boolean
       setDeadline(toLocalInputValue(task.deadline_at));
       setTitle(task.title);
       setDescription(task.description ?? '');
+      setAssigneeId(task.assignee_admin_id ?? '');
+      setHasBudget(task.budget_amount != null);
+      setBudgetAmount(task.budget_amount != null ? String(task.budget_amount) : '');
+      setBudgetCurrency(task.budget_currency ?? 'UAH');
     }
   }, [task, editing]);
 
   async function handleSave() {
     setSaving(true);
     const completing = percent >= 100 && task.percent < 100;
+    const newAssigneeId = assigneeId || null;
+    const assigneeChanged = newAssigneeId && newAssigneeId !== task.assignee_admin_id;
+    const newBudgetAmount = hasBudget && budgetAmount ? Number(budgetAmount) : null;
+    const budgetChanged = newBudgetAmount !== task.budget_amount || (newBudgetAmount != null && budgetCurrency !== task.budget_currency);
+
     const { error } = await supabase
       .from('it_tasks')
       .update({
@@ -209,6 +339,11 @@ function TaskCard({ task, canEdit, onChanged }: { task: ITTask; canEdit: boolean
         percent,
         deadline_at: new Date(deadline).toISOString(),
         completed_at: percent >= 100 ? (task.completed_at ?? new Date().toISOString()) : null,
+        assignee_admin_id: newAssigneeId,
+        budget_amount: newBudgetAmount,
+        budget_currency: newBudgetAmount != null ? budgetCurrency : null,
+        // Будь-яка зміна кошторису вимагає погодження заново.
+        ...(budgetChanged ? { budget_approved_at: null, budget_approved_by: null } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq('id', task.id);
@@ -217,22 +352,42 @@ function TaskCard({ task, canEdit, onChanged }: { task: ITTask; canEdit: boolean
       alert(`Не вдалося зберегти: ${error.message}`);
       return;
     }
+
     if (completing) {
-      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/it-task-notify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_KEY}` },
-        body: JSON.stringify({
-          title: 'Задача завершена',
-          body: `«${title.trim()}» виконано на 100%.`,
-          url: '/it-dashboard',
-        }),
-      }).catch(() => {});
+      notifyItDashboard('Задача завершена', `«${title.trim()}» виконано на 100%.`, null);
     }
+    if (assigneeChanged) {
+      notifyItDashboard('Вам призначено задачу', title.trim(), [newAssigneeId!]);
+    }
+    if (budgetChanged && newBudgetAmount != null) {
+      const yurii = admins.find((a) => a.email === YURII_EMAIL);
+      if (yurii) {
+        notifyItDashboard(
+          'Потрібне погодження кошторису',
+          `«${title.trim()}» — ${newBudgetAmount.toLocaleString('uk-UA')} ${CURRENCY_SIGN[budgetCurrency]}`,
+          [yurii.id],
+        );
+      }
+    }
+
     setEditing(false);
     onChanged();
   }
 
+  async function handleApproveBudget() {
+    if (!admin) return;
+    setApproving(true);
+    const { error } = await supabase
+      .from('it_tasks')
+      .update({ budget_approved_at: new Date().toISOString(), budget_approved_by: admin.id })
+      .eq('id', task.id);
+    setApproving(false);
+    if (error) alert(`Не вдалося погодити: ${error.message}`);
+    else onChanged();
+  }
+
   const left = timeLeftLabel(task.deadline_at, task.percent >= 100);
+  const assignee = admins.find((a) => a.id === task.assignee_admin_id);
 
   return (
     <div className="bg-white rounded-2xl border border-[#E8EDF4] shadow-sm p-5">
@@ -262,6 +417,13 @@ function TaskCard({ task, canEdit, onChanged }: { task: ITTask; canEdit: boolean
         <p className="text-[#546070] text-sm mb-3 leading-relaxed">{task.description}</p>
       ) : null}
 
+      <div className="flex items-center flex-wrap gap-1.5 mb-3">
+        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${assignee ? 'bg-[#F1F5FB] text-[#546070]' : 'bg-amber-100 text-amber-700'}`}>
+          {assignee ? `Відповідальний: ${adminLabel(assignee)}` : 'Відповідальний: Не визначено'}
+        </span>
+        <BudgetBadge task={task} />
+      </div>
+
       <ProgressBar percent={task.percent} />
 
       <div className="flex items-center justify-between mt-3 text-xs text-[#8893A2]">
@@ -279,6 +441,16 @@ function TaskCard({ task, canEdit, onChanged }: { task: ITTask; canEdit: boolean
         ) : formatDateTime(task.deadline_at)}
       </div>
 
+      {isYurii && task.budget_amount != null && !task.budget_approved_at && (
+        <button
+          onClick={handleApproveBudget}
+          disabled={approving}
+          className="mt-3 w-full text-xs font-bold px-3 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+        >
+          {approving ? 'Погодження…' : `Погодити кошторис ${task.budget_amount.toLocaleString('uk-UA')} ${CURRENCY_SIGN[task.budget_currency!]}`}
+        </button>
+      )}
+
       {canEdit && (
         <div className="mt-4 pt-3 border-t border-[#E8EDF4]">
           {editing ? (
@@ -292,6 +464,44 @@ function TaskCard({ task, canEdit, onChanged }: { task: ITTask; canEdit: boolean
                 onChange={(e) => setPercent(Number(e.target.value))}
                 className="w-full accent-[#187FD8]"
               />
+
+              <label className="text-xs font-semibold text-[#8893A2] block mb-1 mt-3">Відповідальний</label>
+              <select
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+                className="border border-[#E8EDF4] rounded-lg px-3 py-2 text-xs w-full"
+              >
+                <option value="">Не визначено</option>
+                {admins.map((a) => (
+                  <option key={a.id} value={a.id}>{adminLabel(a)}</option>
+                ))}
+              </select>
+
+              <label className="text-xs font-semibold text-[#8893A2] flex items-center gap-2 mt-3 mb-1">
+                <input type="checkbox" checked={hasBudget} onChange={(e) => setHasBudget(e.target.checked)} />
+                Кошторис
+              </label>
+              {hasBudget && (
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    value={budgetAmount}
+                    onChange={(e) => setBudgetAmount(e.target.value)}
+                    placeholder="Сума"
+                    className="border border-[#E8EDF4] rounded-lg px-3 py-2 text-xs flex-1"
+                  />
+                  <select
+                    value={budgetCurrency}
+                    onChange={(e) => setBudgetCurrency(e.target.value as Currency)}
+                    className="border border-[#E8EDF4] rounded-lg px-2 py-2 text-xs"
+                  >
+                    <option value="UAH">₴ UAH</option>
+                    <option value="USD">$ USD</option>
+                  </select>
+                </div>
+              )}
+
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={handleSave}
@@ -318,12 +528,15 @@ function TaskCard({ task, canEdit, onChanged }: { task: ITTask; canEdit: boolean
           )}
         </div>
       )}
+
+      <TaskComments taskId={task.id} assigneeId={task.assignee_admin_id} admins={admins} />
     </div>
   );
 }
 
 export default function ITDashboardPage() {
   const { admin } = useAuth();
+  const { admins } = useAdmins();
   const [tasks, setTasks] = useState<ITTask[]>([]);
   const [loading, setLoading] = useState(true);
   const canEdit = admin?.role === 'superadmin';
@@ -369,7 +582,7 @@ export default function ITDashboardPage() {
       </div>
 
       <div className="mb-6">
-        <NewTaskForm onCreated={fetchTasks} />
+        <NewTaskForm admins={admins} onCreated={fetchTasks} />
       </div>
 
       {loading ? (
@@ -390,7 +603,7 @@ export default function ITDashboardPage() {
               <div className="text-xs font-bold text-[#8893A2] uppercase tracking-widest mb-3">У роботі</div>
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {active.map((t) => (
-                  <TaskCard key={t.id} task={t} canEdit={canEdit} onChanged={fetchTasks} />
+                  <TaskCard key={t.id} task={t} canEdit={canEdit} admins={admins} onChanged={fetchTasks} />
                 ))}
               </div>
             </div>
@@ -400,7 +613,7 @@ export default function ITDashboardPage() {
               <div className="text-xs font-bold text-[#8893A2] uppercase tracking-widest mb-3">Завершені</div>
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {completed.map((t) => (
-                  <TaskCard key={t.id} task={t} canEdit={canEdit} onChanged={fetchTasks} />
+                  <TaskCard key={t.id} task={t} canEdit={canEdit} admins={admins} onChanged={fetchTasks} />
                 ))}
               </div>
             </div>
