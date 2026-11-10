@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './lib/auth';
 import RequireAuth from './components/RequireAuth';
 import Layout from './components/Layout';
@@ -28,7 +28,6 @@ import SiteSettingsPage from './pages/SiteSettingsPage';
 import ListingsPage from './pages/ListingsPage';
 import AppVersionPage from './pages/AppVersionPage';
 import BulkImportPage from './pages/BulkImportPage';
-import ITDashboardPage from './pages/ITDashboardPage';
 
 export default function App() {
   return (
@@ -68,7 +67,11 @@ export default function App() {
             <Route path="site-settings" element={<SiteSettingsPage />} />
             <Route path="app-version" element={<AppVersionPage />} />
             <Route path="users" element={<UsersPage />} />
-            <Route path="it-dashboard" element={<ITDashboardPage />} />
+            {/* IT Дашборд вимкнено в адмінці 2026-11-10 — перенесено в іншу
+                систему. Редірект, а не 404: старі закладки на /it-dashboard
+                просто повертають на головний дашборд, нічого додати сюди
+                вже не можна. */}
+            <Route path="it-dashboard" element={<Navigate to="/" replace />} />
             <Route
               path="admin-users"
               element={
