@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { supabaseAdmin as supabase } from '../lib/supabase';
 import { Icon, type IconName } from '../components/Icon';
 
@@ -229,11 +229,59 @@ function Baf1cSettingsPanel() {
   );
 }
 
+interface WarrantyGroup {
+  key: string;
+  doc_id: string | null;
+  client_name: string;
+  client_phone: string;
+  activated_at: string;
+  source: Warranty['source'];
+  items: Warranty[];
+}
+
+// Кілька позицій одного документа (рахунку-фактури) — один клієнт, один
+// doc_id, подані одночасно — групуємо в один рядок, що розгортається,
+// замість окремого рядка на кожну позицію. Без doc_id (старі/легасі
+// записи) групувати нема за чим — кожен лишається окремим "груп"-ом з 1 позиції.
+function groupWarranties(list: Warranty[]): WarrantyGroup[] {
+  const map = new Map<string, WarrantyGroup>();
+  const order: string[] = [];
+  for (const w of list) {
+    const key = w.doc_id ? `doc:${w.doc_id}:${w.client_phone}` : `row:${w.id}`;
+    let g = map.get(key);
+    if (!g) {
+      g = {
+        key,
+        doc_id: w.doc_id,
+        client_name: w.client_name,
+        client_phone: w.client_phone,
+        activated_at: w.activated_at,
+        source: w.source,
+        items: [],
+      };
+      map.set(key, g);
+      order.push(key);
+    }
+    g.items.push(w);
+  }
+  return order.map((k) => map.get(k)!);
+}
+
 export default function WarrantiesPage() {
   const [warranties, setWarranties] = useState<Warranty[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  function toggleExpanded(key: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   useEffect(() => {
     fetchWarranties();
@@ -253,6 +301,59 @@ export default function WarrantiesPage() {
   function formatDate(dateStr: string | null) {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function periodCell(w: Warranty) {
+    const stale = isStale(w);
+    if (w.status === 'pending_1c') {
+      return (
+        <span className="text-[#8893A2] text-xs italic">
+          {stale ? `Без відповіді ${daysSince(w.activated_at)} дн.` : 'Чекає підтвердження'}
+        </span>
+      );
+    }
+    return (
+      <>
+        {formatDate(w.warranty_start_date)} → {formatDate(w.warranty_end_date)}
+        {!w.warranty_end_date && w.status === 'active' && (
+          <div className="text-amber-600 text-xs font-semibold mt-0.5">
+            Термін не визначено {w.warranty_raw ? `("${w.warranty_raw}")` : ''}
+          </div>
+        )}
+      </>
+    );
+  }
+
+  function statusCell(w: Warranty) {
+    return (
+      <>
+        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLOR[w.status]}`}>
+          <Icon name={STATUS_ICON[w.status]} size={11} />
+          {STATUS_LABEL[w.status]}
+        </span>
+        {w.activation_request_error && w.status === 'pending_1c' && (
+          <div className="text-red-600 text-xs mt-1 max-w-[220px]" title={w.activation_request_error}>
+            Помилка запиту до 1С
+          </div>
+        )}
+        {w.status === 'cancelled' && w.cancelled_reason && (
+          <div className="text-[#8893A2] text-xs mt-1 max-w-[220px]">{w.cancelled_reason}</div>
+        )}
+      </>
+    );
+  }
+
+  function cancelCell(w: Warranty) {
+    if (w.status !== 'active' && w.status !== 'pending_1c') return null;
+    return (
+      <button
+        onClick={() => cancelWarranty(w)}
+        disabled={cancellingId === w.id}
+        className="text-xs font-bold text-red-600 hover:text-red-700 disabled:opacity-50"
+      >
+        Скасувати
+      </button>
+    );
   }
 
   async function cancelWarranty(w: Warranty) {
@@ -358,65 +459,93 @@ export default function WarrantiesPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((w) => {
-                const stale = isStale(w);
+              {groupWarranties(filtered).map((g) => {
+                if (g.items.length === 1) {
+                  const w = g.items[0];
+                  const stale = isStale(w);
+                  return (
+                    <tr key={g.key} className={`border-b border-[#E8EDF4] last:border-0 ${stale ? 'bg-amber-50/60' : ''}`}>
+                      <td className="px-5 py-4">
+                        <div className="font-semibold text-[#20303C]">{w.client_name}</div>
+                        <div className="text-[#8893A2] text-xs">{w.client_phone}</div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="text-[#20303C]">{w.goods ?? '—'}</div>
+                        <div className="text-[#8893A2] text-xs">ID машини: {w.machine_id ?? '—'}</div>
+                      </td>
+                      <td className="px-5 py-4 text-[#546070]">{w.doc_id ?? '—'}</td>
+                      <td className="px-5 py-4 text-[#546070]">{formatDate(w.activated_at)}</td>
+                      <td className="px-5 py-4 text-[#546070]">{periodCell(w)}</td>
+                      <td className="px-5 py-4">{statusCell(w)}</td>
+                      <td className="px-5 py-4 text-[#546070] text-xs">{SOURCE_LABEL[w.source ?? 'qr_1c'] ?? w.source}</td>
+                      <td className="px-5 py-4 text-right">{cancelCell(w)}</td>
+                    </tr>
+                  );
+                }
+
+                // Кілька позицій одного документа — один згорнутий рядок,
+                // що розгортається, замість рядка на кожну позицію.
+                const isOpen = expanded.has(g.key);
+                const anyStale = g.items.some(isStale);
+                const uniformStatus = g.items.every((w) => w.status === g.items[0].status) ? g.items[0].status : null;
+                const uniformPeriod =
+                  g.items.every((w) => w.warranty_start_date === g.items[0].warranty_start_date && w.warranty_end_date === g.items[0].warranty_end_date)
+                    ? g.items[0]
+                    : null;
+
                 return (
-                  <tr key={w.id} className={`border-b border-[#E8EDF4] last:border-0 ${stale ? 'bg-amber-50/60' : ''}`}>
-                    <td className="px-5 py-4">
-                      <div className="font-semibold text-[#20303C]">{w.client_name}</div>
-                      <div className="text-[#8893A2] text-xs">{w.client_phone}</div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="text-[#20303C]">{w.goods ?? '—'}</div>
-                      <div className="text-[#8893A2] text-xs">ID машини: {w.machine_id ?? '—'}</div>
-                    </td>
-                    <td className="px-5 py-4 text-[#546070]">{w.doc_id ?? '—'}</td>
-                    <td className="px-5 py-4 text-[#546070]">{formatDate(w.activated_at)}</td>
-                    <td className="px-5 py-4 text-[#546070]">
-                      {w.status === 'pending_1c' ? (
-                        <span className="text-[#8893A2] text-xs italic">
-                          {stale ? `Без відповіді ${daysSince(w.activated_at)} дн.` : 'Чекає підтвердження'}
-                        </span>
-                      ) : (
-                        <>
-                          {formatDate(w.warranty_start_date)} → {formatDate(w.warranty_end_date)}
-                          {!w.warranty_end_date && w.status === 'active' && (
-                            <div className="text-amber-600 text-xs font-semibold mt-0.5">
-                              Термін не визначено {w.warranty_raw ? `("${w.warranty_raw}")` : ''}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLOR[w.status]}`}>
-                        <Icon name={STATUS_ICON[w.status]} size={11} />
-                        {STATUS_LABEL[w.status]}
-                      </span>
-                      {w.activation_request_error && w.status === 'pending_1c' && (
-                        <div className="text-red-600 text-xs mt-1 max-w-[220px]" title={w.activation_request_error}>
-                          Помилка запиту до 1С
+                  <Fragment key={g.key}>
+                    <tr
+                      onClick={() => toggleExpanded(g.key)}
+                      className={`border-b border-[#E8EDF4] last:border-0 cursor-pointer hover:bg-[#F8FAFC] ${anyStale ? 'bg-amber-50/60' : ''} ${isOpen ? 'bg-[#F8FAFC]' : ''}`}
+                    >
+                      <td className="px-5 py-4">
+                        <div className="font-semibold text-[#20303C]">{g.client_name}</div>
+                        <div className="text-[#8893A2] text-xs">{g.client_phone}</div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1.5 text-[#20303C] font-semibold">
+                          <Icon name="chevronDown" size={13} className={isOpen ? 'rotate-180' : ''} />
+                          {g.items.length} позиції
                         </div>
-                      )}
-                      {w.status === 'cancelled' && w.cancelled_reason && (
-                        <div className="text-[#8893A2] text-xs mt-1 max-w-[220px]">{w.cancelled_reason}</div>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-[#546070] text-xs">
-                      {SOURCE_LABEL[w.source ?? 'qr_1c'] ?? w.source}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      {(w.status === 'active' || w.status === 'pending_1c') && (
-                        <button
-                          onClick={() => cancelWarranty(w)}
-                          disabled={cancellingId === w.id}
-                          className="text-xs font-bold text-red-600 hover:text-red-700 disabled:opacity-50"
-                        >
-                          Скасувати
-                        </button>
-                      )}
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="px-5 py-4 text-[#546070]">{g.doc_id ?? '—'}</td>
+                      <td className="px-5 py-4 text-[#546070]">{formatDate(g.activated_at)}</td>
+                      <td className="px-5 py-4 text-[#546070]">
+                        {uniformPeriod ? periodCell(uniformPeriod) : <span className="text-[#8893A2] text-xs italic">Див. деталі</span>}
+                      </td>
+                      <td className="px-5 py-4">
+                        {uniformStatus ? (
+                          <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLOR[uniformStatus]}`}>
+                            <Icon name={STATUS_ICON[uniformStatus]} size={11} />
+                            {STATUS_LABEL[uniformStatus]}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#F1F5FB] text-[#546070]">Статуси різні</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-[#546070] text-xs">{SOURCE_LABEL[g.source ?? 'qr_1c'] ?? g.source}</td>
+                      <td className="px-5 py-4 text-right text-xs text-[#8893A2]">{isOpen ? 'Згорнути' : 'Розгорнути'}</td>
+                    </tr>
+                    {isOpen &&
+                      g.items.map((w) => (
+                        <tr key={w.id} className="border-b border-[#E8EDF4] last:border-0 bg-[#FBFCFE]">
+                          <td className="px-5 py-3"></td>
+                          <td className="px-5 py-3 pl-9">
+                            <div className="text-[#20303C]">{w.goods ?? '—'}</div>
+                            <div className="text-[#8893A2] text-xs">ID машини: {w.machine_id ?? '—'}</div>
+                          </td>
+                          <td className="px-5 py-3"></td>
+                          <td className="px-5 py-3"></td>
+                          <td className="px-5 py-3 text-[#546070]">{periodCell(w)}</td>
+                          <td className="px-5 py-3">{statusCell(w)}</td>
+                          <td className="px-5 py-3"></td>
+                          <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            {cancelCell(w)}
+                          </td>
+                        </tr>
+                      ))}
+                  </Fragment>
                 );
               })}
             </tbody>
