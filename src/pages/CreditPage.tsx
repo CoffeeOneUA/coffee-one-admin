@@ -11,10 +11,8 @@ const CREDIT_SITE_URL = 'https://credit.coffeeone-market.com.ua';
 interface CreditSettings {
   monobank_enabled: boolean;
   monobank_token: string | null;
-  wayforpay_enabled: boolean;
-  wayforpay_merchant_account: string | null;
-  wayforpay_secret_key: string | null;
-  wayforpay_domain: string | null;
+  abank_enabled: boolean;
+  abank_credentials: Record<string, unknown> | null;
 }
 
 interface CreditLink {
@@ -44,6 +42,7 @@ function genSlug(): string {
 
 function SettingsPanel() {
   const [settings, setSettings] = useState<CreditSettings | null>(null);
+  const [abankCredsText, setAbankCredsText] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
@@ -52,16 +51,26 @@ function SettingsPanel() {
     (async () => {
       const { data } = await supabase.from('credit_settings').select('*').eq('id', 1).maybeSingle();
       setSettings(data);
+      setAbankCredsText(data?.abank_credentials ? JSON.stringify(data.abank_credentials, null, 2) : '');
       setLoading(false);
     })();
   }, []);
 
   async function save() {
     if (!settings) return;
+    let abank_credentials: Record<string, unknown> | null = null;
+    if (abankCredsText.trim()) {
+      try {
+        abank_credentials = JSON.parse(abankCredsText);
+      } catch {
+        alert('Реквізити А-Банку мають бути в форматі JSON, напр. {"merchant_id": "...", "api_key": "..."}');
+        return;
+      }
+    }
     setSaving(true);
     const { error } = await supabase
       .from('credit_settings')
-      .update({ ...settings, updated_at: new Date().toISOString() })
+      .update({ ...settings, abank_credentials, updated_at: new Date().toISOString() })
       .eq('id', 1);
     setSaving(false);
     if (error) alert(error.message);
@@ -99,40 +108,21 @@ function SettingsPanel() {
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-[#20303C]">WayForPay (Плати частинами від А-Банку)</span>
-              <Toggle on={settings.wayforpay_enabled} onChange={(v) => setSettings({ ...settings, wayforpay_enabled: v })} />
+              <span className="text-sm font-semibold text-[#20303C]">А-Банк (пряма інтеграція, Плати частинами)</span>
+              <Toggle on={settings.abank_enabled} onChange={(v) => setSettings({ ...settings, abank_enabled: v })} />
             </div>
             <div className="bg-amber-50 text-amber-800 text-xs rounded-xl p-3 mb-3">
-              Крім цих ключів, потрібно окремо активувати метод оплати "Плати частинами від А-Банку" в особистому кабінеті WayForPay цього мерчанта.
+              Поки без WayForPay — пряма інтеграція з API А-Банку в розробці. Вставте сюди реквізити,
+              які видав банк (у форматі JSON), коли буде готовий сам платіжний флоу.
             </div>
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Merchant account</label>
-                <input
-                  value={settings.wayforpay_merchant_account ?? ''}
-                  onChange={(e) => setSettings({ ...settings, wayforpay_merchant_account: e.target.value })}
-                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Secret key</label>
-                <input
-                  type="password"
-                  value={settings.wayforpay_secret_key ?? ''}
-                  onChange={(e) => setSettings({ ...settings, wayforpay_secret_key: e.target.value })}
-                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Домен (зареєстрований у WayForPay)</label>
-                <input
-                  value={settings.wayforpay_domain ?? ''}
-                  onChange={(e) => setSettings({ ...settings, wayforpay_domain: e.target.value })}
-                  placeholder="credit.coffeeone-market.com.ua"
-                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
-                />
-              </div>
-            </div>
+            <label className="text-xs font-bold text-[#546070] mb-1.5 block">Реквізити (JSON)</label>
+            <textarea
+              value={abankCredsText}
+              onChange={(e) => setAbankCredsText(e.target.value)}
+              rows={5}
+              placeholder='{"merchant_id": "...", "api_key": "...", "secret": "..."}'
+              className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+            />
           </div>
 
           <button
