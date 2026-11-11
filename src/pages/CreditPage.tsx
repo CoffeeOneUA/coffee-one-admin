@@ -10,7 +10,8 @@ const CREDIT_SITE_URL = 'https://credit.coffeeone-market.com.ua';
 
 interface CreditSettings {
   monobank_enabled: boolean;
-  monobank_token: string | null;
+  monobank_store_id: string | null;
+  monobank_sign_key: string | null;
   abank_enabled: boolean;
   abank_credentials: Record<string, unknown> | null;
 }
@@ -23,6 +24,8 @@ interface CreditLink {
   status: 'pending' | 'paid' | 'cancelled';
   created_at: string;
   paid_at: string | null;
+  client_phone: string | null;
+  payments_number: number | null;
 }
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
@@ -98,12 +101,25 @@ function SettingsPanel() {
               <span className="text-sm font-semibold text-[#20303C]">Monobank (Покупка частинами)</span>
               <Toggle on={settings.monobank_enabled} onChange={(v) => setSettings({ ...settings, monobank_enabled: v })} />
             </div>
-            <label className="text-xs font-bold text-[#546070] mb-1.5 block">X-Token мерчанта</label>
-            <input
-              value={settings.monobank_token ?? ''}
-              onChange={(e) => setSettings({ ...settings, monobank_token: e.target.value })}
-              className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
-            />
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Store ID</label>
+                <input
+                  value={settings.monobank_store_id ?? ''}
+                  onChange={(e) => setSettings({ ...settings, monobank_store_id: e.target.value })}
+                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Ключ підпису (signKey)</label>
+                <input
+                  type="password"
+                  value={settings.monobank_sign_key ?? ''}
+                  onChange={(e) => setSettings({ ...settings, monobank_sign_key: e.target.value })}
+                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+                />
+              </div>
+            </div>
           </div>
 
           <div>
@@ -141,6 +157,8 @@ function SettingsPanel() {
 function NewLinkForm({ onCreated }: { onCreated: () => void }) {
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
+  const [phone, setPhone] = useState('');
+  const [paymentsNumber, setPaymentsNumber] = useState('');
   const [saving, setSaving] = useState(false);
   const [lastUrl, setLastUrl] = useState<string | null>(null);
 
@@ -149,12 +167,18 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
       alert('Вкажіть назву і ціну');
       return;
     }
+    if (phone.trim() && !/^\+380\d{9}$/.test(phone.trim())) {
+      alert('Телефон має бути у форматі +380XXXXXXXXX (або залиште поле порожнім)');
+      return;
+    }
     setSaving(true);
     const slug = genSlug();
     const { error } = await supabase.from('credit_links').insert({
       slug,
       title: title.trim(),
       price_uah: Number(price),
+      client_phone: phone.trim() || null,
+      payments_number: paymentsNumber ? Number(paymentsNumber) : null,
     });
     setSaving(false);
     if (error) {
@@ -164,6 +188,8 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
     setLastUrl(`${CREDIT_SITE_URL}/l/${slug}`);
     setTitle('');
     setPrice('');
+    setPhone('');
+    setPaymentsNumber('');
     onCreated();
   }
 
@@ -185,6 +211,28 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
           placeholder="Ціна, грн"
           className="border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
         />
+        <input
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Телефон клієнта, +380XXXXXXXXX (обов'язково для Monobank, можна лишити порожнім і ввести на сторінці оплати)"
+          className="border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+        />
+        <div>
+          <input
+            type="number"
+            min={3}
+            max={25}
+            value={paymentsNumber}
+            onChange={(e) => setPaymentsNumber(e.target.value)}
+            placeholder="Кількість платежів (орієнтовно, 3-25)"
+            className="w-full border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+          />
+          <p className="text-xs text-[#8893A2] mt-1">
+            Поки лише інформаційно для клієнта — Monobank не підтвердив публічно, чи приймає цей параметр
+            у запиті, чи кількість платежів фіксована окремо для нашого store-id. Остаточно клієнт обирає
+            кількість на стороні банку.
+          </p>
+        </div>
         <button
           onClick={handleCreate}
           disabled={saving}
