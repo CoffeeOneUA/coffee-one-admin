@@ -45,6 +45,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { path: '/bulk-import', icon: 'uploadTray', label: 'Масовий імпорт' },
       { path: '/orders', icon: 'package', label: 'Замовлення' },
       { path: '/bloggers', icon: 'video', label: 'Блогери' },
+      { path: '/credit', icon: 'creditCard', label: 'Розстрочка' },
     ],
   },
   {

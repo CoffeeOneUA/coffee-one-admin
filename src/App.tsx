@@ -28,6 +28,7 @@ import SiteSettingsPage from './pages/SiteSettingsPage';
 import ListingsPage from './pages/ListingsPage';
 import AppVersionPage from './pages/AppVersionPage';
 import BulkImportPage from './pages/BulkImportPage';
+import CreditPage from './pages/CreditPage';
 
 export default function App() {
   return (
@@ -60,6 +61,7 @@ export default function App() {
             <Route path="bloggers" element={<BloggersPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="payment-settings" element={<PaymentSettingsPage />} />
+            <Route path="credit" element={<CreditPage />} />
             <Route path="maintenance" element={<MaintenancePage />} />
             <Route path="support" element={<SupportPage />} />
             <Route path="service-centers" element={<ServiceCentersPage />} />
