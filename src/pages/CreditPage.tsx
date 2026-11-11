@@ -257,6 +257,110 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
+interface CreditPayment {
+  id: string;
+  title: string;
+  amount: number;
+  gateway: 'monobank' | 'abank';
+  status: 'pending' | 'paid' | 'failed';
+  gateway_state: string | null;
+  client_phone: string | null;
+  created_at: string;
+}
+
+function PaymentsPanel() {
+  const [payments, setPayments] = useState<CreditPayment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState<string | null>(null);
+
+  async function fetchPayments() {
+    const { data, error } = await supabase
+      .from('credit_payments')
+      .select('id, title, amount, gateway, status, gateway_state, client_phone, created_at')
+      .eq('status', 'pending')
+      .not('gateway_payment_id', 'is', null)
+      .order('created_at', { ascending: false });
+    if (!error) setPayments(data ?? []);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  async function act(paymentId: string, action: 'confirm' | 'reject') {
+    const label = action === 'confirm' ? 'видачу обладнання клієнту' : 'заявку (клієнт нічого не отримає)';
+    if (!confirm(`Підтвердити ${label}? Цю дію не можна скасувати.`)) return;
+    setActing(paymentId);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/credit-monobank-confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_KEY}`,
+        },
+        body: JSON.stringify({ payment_id: paymentId, action }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error ?? 'Помилка');
+      await fetchPayments();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Помилка');
+    } finally {
+      setActing(null);
+    }
+  }
+
+  if (loading) return null;
+  if (payments.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#E8EDF4] shadow-sm p-5 mb-6">
+      <div className="font-bold text-[#20303C] mb-1">Заявки на розстрочку, що очікують дії</div>
+      <p className="text-xs text-[#8893A2] mb-4">
+        Коли клієнт підтвердить покупку в застосунку Monobank — тут з'явиться статус
+        "WAITING_FOR_STORE_CONFIRM". Після фактичної видачі обладнання натисніть "Підтвердити видачу" —
+        без цього банк не активує розстрочку.
+      </p>
+      <div className="space-y-3">
+        {payments.map((p) => {
+          const confirmedByClient = p.gateway_state?.includes('WAITING_FOR_STORE_CONFIRM') ?? false;
+          return (
+            <div key={p.id} className="border border-[#E8EDF4] rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="font-semibold text-[#20303C]">{p.title}</div>
+                <div className="text-xs text-[#8893A2]">
+                  {Number(p.amount).toLocaleString('uk-UA')} ₴ · {p.client_phone ?? 'без телефону'} ·{' '}
+                  <span className={confirmedByClient ? 'text-green-600 font-semibold' : ''}>
+                    {p.gateway_state ?? 'очікує підтвердження клієнтом'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => act(p.id, 'confirm')}
+                  disabled={acting === p.id || !confirmedByClient}
+                  title={!confirmedByClient ? 'Клієнт ще не підтвердив покупку в застосунку' : ''}
+                  className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-40"
+                >
+                  Підтвердити видачу
+                </button>
+                <button
+                  onClick={() => act(p.id, 'reject')}
+                  disabled={acting === p.id}
+                  className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-40"
+                >
+                  Відхилити
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const STATUS_LABEL: Record<CreditLink['status'], string> = {
   pending: 'Очікує оплати',
   paid: 'Оплачено',
@@ -304,6 +408,7 @@ export default function CreditPage() {
       </div>
 
       <SettingsPanel />
+      <PaymentsPanel />
       <NewLinkForm onCreated={fetchLinks} />
 
       {loading ? (
