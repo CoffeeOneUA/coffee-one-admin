@@ -14,6 +14,9 @@ interface CreditSettings {
   monobank_sign_key: string | null;
   abank_enabled: boolean;
   abank_credentials: Record<string, unknown> | null;
+  salesdrive_enabled: boolean;
+  salesdrive_base_url: string | null;
+  salesdrive_api_key: string | null;
 }
 
 interface CreditLink {
@@ -139,6 +142,37 @@ function SettingsPanel() {
               placeholder='{"merchant_id": "...", "api_key": "...", "secret": "..."}'
               className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
             />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-[#20303C]">SalesDrive — сповіщення про успішні покупки</span>
+              <Toggle on={settings.salesdrive_enabled} onChange={(v) => setSettings({ ...settings, salesdrive_enabled: v })} />
+            </div>
+            <div className="bg-blue-50 text-blue-800 text-xs rounded-xl p-3 mb-3">
+              Заявка створюється в SalesDrive лише коли адмін підтверджує видачу товару (успішна розстрочка).
+              Невдалі/відхилені спроби туди не потрапляють.
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="text-xs font-bold text-[#546070] mb-1.5 block">URL акаунта (напр. https://вашакомпанія.salesdrive.me)</label>
+                <input
+                  value={settings.salesdrive_base_url ?? ''}
+                  onChange={(e) => setSettings({ ...settings, salesdrive_base_url: e.target.value })}
+                  placeholder="https://yourcompany.salesdrive.me"
+                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#546070] mb-1.5 block">API-ключ (X-Api-Key)</label>
+                <input
+                  type="password"
+                  value={settings.salesdrive_api_key ?? ''}
+                  onChange={(e) => setSettings({ ...settings, salesdrive_api_key: e.target.value })}
+                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+                />
+              </div>
+            </div>
           </div>
 
           <button
