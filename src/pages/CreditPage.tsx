@@ -350,22 +350,23 @@ function PaymentsPanel() {
 
   return (
     <div className="bg-white rounded-2xl border border-[#E8EDF4] shadow-sm p-5 mb-6">
-      <div className="font-bold text-[#20303C] mb-1">Заявки на розстрочку, що очікують дії</div>
+      <div className="font-bold text-[#20303C] mb-1">Заявки на розстрочку</div>
       <p className="text-xs text-[#8893A2] mb-4">
-        Коли клієнт підтвердить покупку в застосунку Monobank — тут з'явиться статус
-        "WAITING_FOR_STORE_CONFIRM". Після фактичної видачі обладнання натисніть "Підтвердити видачу" —
-        без цього банк не активує розстрочку.
+        Підтвердження видачі відбувається автоматично одразу, як клієнт підтверджує покупку в
+        застосунку Monobank (без ручної дії) — і одразу штовхається в SalesDrive, якщо увімкнено.
+        Тут лишаються лише ті, що ще очікують клієнта, або де автопідтвердження з якоїсь причини не
+        спрацювало ("AUTO_CONFIRM_FAILED") — для них можна підтвердити/відхилити вручну.
       </p>
       <div className="space-y-3">
         {payments.map((p) => {
-          const confirmedByClient = p.gateway_state?.includes('WAITING_FOR_STORE_CONFIRM') ?? false;
+          const autoFailed = p.gateway_state?.startsWith('AUTO_CONFIRM_FAILED') ?? false;
           return (
             <div key={p.id} className="border border-[#E8EDF4] rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="font-semibold text-[#20303C]">{p.title}</div>
                 <div className="text-xs text-[#8893A2]">
                   {Number(p.amount).toLocaleString('uk-UA')} ₴ · {p.client_phone ?? 'без телефону'} ·{' '}
-                  <span className={confirmedByClient ? 'text-green-600 font-semibold' : ''}>
+                  <span className={autoFailed ? 'text-red-600 font-semibold' : ''}>
                     {p.gateway_state ?? 'очікує підтвердження клієнтом'}
                   </span>
                 </div>
@@ -373,11 +374,10 @@ function PaymentsPanel() {
               <div className="flex gap-2">
                 <button
                   onClick={() => act(p.id, 'confirm')}
-                  disabled={acting === p.id || !confirmedByClient}
-                  title={!confirmedByClient ? 'Клієнт ще не підтвердив покупку в застосунку' : ''}
+                  disabled={acting === p.id}
                   className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-40"
                 >
-                  Підтвердити видачу
+                  Підтвердити вручну
                 </button>
                 <button
                   onClick={() => act(p.id, 'reject')}
