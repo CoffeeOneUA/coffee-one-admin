@@ -272,6 +272,7 @@ export default function WarrantiesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   function toggleExpanded(key: string) {
@@ -313,14 +314,27 @@ export default function WarrantiesPage() {
       );
     }
     return (
-      <>
-        {formatDate(w.warranty_start_date)} → {formatDate(w.warranty_end_date)}
-        {!w.warranty_end_date && w.status === 'active' && (
-          <div className="text-amber-600 text-xs font-semibold mt-0.5">
-            Термін не визначено {w.warranty_raw ? `("${w.warranty_raw}")` : ''}
-          </div>
-        )}
-      </>
+      <div className="flex items-start gap-1.5">
+        <div>
+          {formatDate(w.warranty_start_date)} → {formatDate(w.warranty_end_date)}
+          {!w.warranty_end_date && w.status === 'active' && (
+            <div className="text-amber-600 text-xs font-semibold mt-0.5">
+              Термін не визначено {w.warranty_raw ? `("${w.warranty_raw}")` : ''}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            editWarrantyDates(w);
+          }}
+          disabled={editingId === w.id}
+          title="Змінити дату початку гарантії вручну"
+          className="text-[#8893A2] hover:text-[#187FD8] disabled:opacity-50 shrink-0 mt-0.5"
+        >
+          <Icon name="edit" size={12} />
+        </button>
+      </div>
     );
   }
 
@@ -380,6 +394,63 @@ export default function WarrantiesPage() {
       return;
     }
     setWarranties((prev) => prev.map((x) => (x.id === w.id ? { ...x, status: 'cancelled', cancelled_reason: reason.trim() || null } : x)));
+  }
+
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+  // Ручне виправлення дати початку гарантії — потрібно для клієнтів, що
+  // сканують документ через кілька місяців після покупки: сервер сам
+  // підставляє invoice_date (дату документа) при підтвердженні від 1С, але
+  // якщо OCR помилився з датою або документ зовсім старий (гарантія з
+  // такого розрахунку може вже спливати чи навіть закінчилась) — адмін
+  // може підправити вручну. Кінець гарантії перераховується від нової
+  // дати початку + warranty_months, якщо термін відомий; інакше просимо
+  // ввести кінець окремо.
+  async function editWarrantyDates(w: Warranty) {
+    const startInput = window.prompt(
+      `Дата початку гарантії на "${w.goods ?? 'обладнання'}" (${w.client_name}).\nФормат: РРРР-ММ-ДД`,
+      w.warranty_start_date ?? ''
+    );
+    if (startInput === null) return;
+    const newStart = startInput.trim();
+    if (!DATE_RE.test(newStart)) {
+      alert('Невірний формат дати. Використайте РРРР-ММ-ДД, напр. 2026-05-20');
+      return;
+    }
+
+    let newEnd: string | null;
+    if (w.warranty_months) {
+      const end = new Date(newStart);
+      end.setMonth(end.getMonth() + w.warranty_months);
+      newEnd = end.toISOString().slice(0, 10);
+    } else {
+      const endInput = window.prompt(
+        `Термін гарантії в місяцях невідомий — вкажіть дату закінчення вручну.\nФормат: РРРР-ММ-ДД (залиште порожнім, щоб не чіпати)`,
+        w.warranty_end_date ?? ''
+      );
+      if (endInput === null) return;
+      const trimmedEnd = endInput.trim();
+      if (trimmedEnd && !DATE_RE.test(trimmedEnd)) {
+        alert('Невірний формат дати.');
+        return;
+      }
+      newEnd = trimmedEnd || w.warranty_end_date;
+    }
+
+    setEditingId(w.id);
+    const { error } = await supabase
+      .from('warranties')
+      .update({ warranty_start_date: newStart, warranty_end_date: newEnd })
+      .eq('id', w.id);
+    setEditingId(null);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setWarranties((prev) =>
+      prev.map((x) => (x.id === w.id ? { ...x, warranty_start_date: newStart, warranty_end_date: newEnd } : x))
+    );
   }
 
   const normalizedSearch = search.trim().toLowerCase();
