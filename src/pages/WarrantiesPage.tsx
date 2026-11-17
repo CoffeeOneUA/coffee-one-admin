@@ -16,6 +16,7 @@ interface Warranty {
   invoice_total: number | null;
   warranty_start_date: string | null;
   warranty_end_date: string | null;
+  warranty_months: number | null;
   status: 'pending_1c' | 'active' | 'cancelled' | 'expired' | 'renewed';
   activated_at: string;
   confirmed_at: string | null;
