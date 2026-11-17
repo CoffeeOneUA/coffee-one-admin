@@ -14,6 +14,11 @@ interface CreditSettings {
   monobank_sign_key: string | null;
   abank_enabled: boolean;
   abank_credentials: Record<string, unknown> | null;
+  wayforpay_enabled: boolean;
+  privat_wfp_enabled: boolean;
+  wayforpay_merchant_account: string | null;
+  wayforpay_secret_key: string | null;
+  wayforpay_domain: string | null;
   salesdrive_enabled: boolean;
   salesdrive_base_url: string | null;
   salesdrive_api_key: string | null;
@@ -146,12 +151,62 @@ function SettingsPanel() {
 
           <div>
             <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-[#20303C]">WayForPay — картка і ПриватБанк частинами</span>
+            </div>
+            <div className="bg-amber-50 text-amber-800 text-xs rounded-xl p-3 mb-3">
+              Один мерчант-акаунт WayForPay обслуговує два способи оплати нижче. "Оплата частинами від
+              ПриватБанку" — через власний продукт WayForPay PayParts (payPartsPrivat): кількість платежів
+              (2–12) клієнт обирає вже на сторінці WayForPay. Для нового магазину банк розглядає заявку на
+              підключення частинами до 2 тижнів — увімкніть перемикач нижче, коли WayForPay підтвердить
+              активацію в особистому кабінеті.
+            </div>
+            <div className="grid grid-cols-1 gap-3 mb-3">
+              <div>
+                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Merchant account</label>
+                <input
+                  value={settings.wayforpay_merchant_account ?? ''}
+                  onChange={(e) => setSettings({ ...settings, wayforpay_merchant_account: e.target.value })}
+                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Secret key</label>
+                <input
+                  type="password"
+                  value={settings.wayforpay_secret_key ?? ''}
+                  onChange={(e) => setSettings({ ...settings, wayforpay_secret_key: e.target.value })}
+                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Домен (merchantDomainName)</label>
+                <input
+                  value={settings.wayforpay_domain ?? ''}
+                  onChange={(e) => setSettings({ ...settings, wayforpay_domain: e.target.value })}
+                  placeholder="credit.coffeeone-market.com.ua"
+                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
+              <span className="text-sm text-[#20303C]">Оплата карткою (WayForPay)</span>
+              <Toggle on={settings.wayforpay_enabled} onChange={(v) => setSettings({ ...settings, wayforpay_enabled: v })} />
+            </div>
+            <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
+              <span className="text-sm text-[#20303C]">Оплата частинами від ПриватБанку (через WayForPay)</span>
+              <Toggle on={settings.privat_wfp_enabled} onChange={(v) => setSettings({ ...settings, privat_wfp_enabled: v })} />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-semibold text-[#20303C]">SalesDrive — сповіщення про успішні покупки</span>
               <Toggle on={settings.salesdrive_enabled} onChange={(v) => setSettings({ ...settings, salesdrive_enabled: v })} />
             </div>
             <div className="bg-blue-50 text-blue-800 text-xs rounded-xl p-3 mb-3">
-              Заявка створюється в SalesDrive лише коли адмін підтверджує видачу товару (успішна розстрочка).
-              Невдалі/відхилені спроби туди не потрапляють.
+              Заявка створюється в SalesDrive лише для дійсно успішної оплати — автоматично в момент
+              підтвердження (Monobank: одразу як клієнт підтвердив покупку в застосунку; WayForPay/Privat:
+              одразу як прийде колбек transactionStatus=Approved). Невдалі/відхилені спроби туди не потрапляють.
             </div>
             <div className="grid grid-cols-1 gap-3">
               <div>
@@ -295,7 +350,7 @@ interface CreditPayment {
   id: string;
   title: string;
   amount: number;
-  gateway: 'monobank' | 'abank';
+  gateway: 'monobank' | 'abank' | 'wayforpay' | 'privat';
   status: 'pending' | 'paid' | 'failed';
   gateway_state: string | null;
   client_phone: string | null;
@@ -308,10 +363,17 @@ function PaymentsPanel() {
   const [acting, setActing] = useState<string | null>(null);
 
   async function fetchPayments() {
+    // Лише Monobank: і webhook, і полінг самі підтверджують видачу
+    // (autoConfirmInstallment), сюди потрапляють лише ті, де
+    // автопідтвердження не спрацювало, або ще чекають клієнта в
+    // застосунку. WayForPay/Privat — redirect-флоу, там нема ручного
+    // кроку "підтвердити видачу": статус міняє сам вебхук WayForPay
+    // (Approved/Declined), без дії адміна.
     const { data, error } = await supabase
       .from('credit_payments')
       .select('id, title, amount, gateway, status, gateway_state, client_phone, created_at')
       .eq('status', 'pending')
+      .eq('gateway', 'monobank')
       .not('gateway_payment_id', 'is', null)
       .order('created_at', { ascending: false });
     if (!error) setPayments(data ?? []);
