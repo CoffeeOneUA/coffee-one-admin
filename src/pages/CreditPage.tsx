@@ -13,8 +13,6 @@ interface CreditSettings {
   monobank_store_id: string | null;
   monobank_sign_key: string | null;
   abank_enabled: boolean;
-  abank_credentials: Record<string, unknown> | null;
-  wayforpay_enabled: boolean;
   privat_wfp_enabled: boolean;
   wayforpay_merchant_account: string | null;
   wayforpay_secret_key: string | null;
@@ -23,6 +21,14 @@ interface CreditSettings {
   salesdrive_base_url: string | null;
   salesdrive_api_key: string | null;
 }
+
+type Gateway = 'monobank' | 'abank' | 'privat';
+
+const GATEWAY_LABEL: Record<Gateway, string> = {
+  monobank: 'Monobank — Покупка частинами',
+  abank: 'А-Банк — Оплата частинами (через WayForPay)',
+  privat: 'ПриватБанк — Оплата частинами (через WayForPay)',
+};
 
 interface CreditLink {
   id: string;
@@ -34,6 +40,7 @@ interface CreditLink {
   paid_at: string | null;
   client_phone: string | null;
   payments_number: number | null;
+  gateway: Gateway | null;
 }
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
@@ -53,7 +60,6 @@ function genSlug(): string {
 
 function SettingsPanel() {
   const [settings, setSettings] = useState<CreditSettings | null>(null);
-  const [abankCredsText, setAbankCredsText] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
@@ -62,26 +68,16 @@ function SettingsPanel() {
     (async () => {
       const { data } = await supabase.from('credit_settings').select('*').eq('id', 1).maybeSingle();
       setSettings(data);
-      setAbankCredsText(data?.abank_credentials ? JSON.stringify(data.abank_credentials, null, 2) : '');
       setLoading(false);
     })();
   }, []);
 
   async function save() {
     if (!settings) return;
-    let abank_credentials: Record<string, unknown> | null = null;
-    if (abankCredsText.trim()) {
-      try {
-        abank_credentials = JSON.parse(abankCredsText);
-      } catch {
-        alert('Реквізити А-Банку мають бути в форматі JSON, напр. {"merchant_id": "...", "api_key": "..."}');
-        return;
-      }
-    }
     setSaving(true);
     const { error } = await supabase
       .from('credit_settings')
-      .update({ ...settings, abank_credentials, updated_at: new Date().toISOString() })
+      .update({ ...settings, updated_at: new Date().toISOString() })
       .eq('id', 1);
     setSaving(false);
     if (error) alert(error.message);
@@ -132,33 +128,14 @@ function SettingsPanel() {
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-[#20303C]">А-Банк (пряма інтеграція, Плати частинами)</span>
-              <Toggle on={settings.abank_enabled} onChange={(v) => setSettings({ ...settings, abank_enabled: v })} />
+              <span className="text-sm font-semibold text-[#20303C]">WayForPay — розстрочки від А-Банку і ПриватБанку</span>
             </div>
             <div className="bg-amber-50 text-amber-800 text-xs rounded-xl p-3 mb-3">
-              Поки без WayForPay — пряма інтеграція з API А-Банку в розробці. Вставте сюди реквізити,
-              які видав банк (у форматі JSON), коли буде готовий сам платіжний флоу.
-            </div>
-            <label className="text-xs font-bold text-[#546070] mb-1.5 block">Реквізити (JSON)</label>
-            <textarea
-              value={abankCredsText}
-              onChange={(e) => setAbankCredsText(e.target.value)}
-              rows={5}
-              placeholder='{"merchant_id": "...", "api_key": "...", "secret": "..."}'
-              className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-[#20303C]">WayForPay — картка і ПриватБанк частинами</span>
-            </div>
-            <div className="bg-amber-50 text-amber-800 text-xs rounded-xl p-3 mb-3">
-              Один мерчант-акаунт WayForPay обслуговує два способи оплати нижче. "Оплата частинами від
-              ПриватБанку" — через власний продукт WayForPay PayParts (payPartsPrivat): кількість платежів
-              (2–12) клієнт обирає вже на сторінці WayForPay. Для нового магазину банк розглядає заявку на
-              підключення частинами до 2 тижнів — увімкніть перемикач нижче, коли WayForPay підтвердить
-              активацію в особистому кабінеті.
+              Один мерчант-акаунт WayForPay обслуговує лише два способи оплати нижче — "PayParts"
+              (payPartsAbank / payPartsPrivat): кількість платежів (2–12) клієнт обирає вже на сторінці
+              WayForPay. Звичайної оплати карткою через цей акаунт немає. Для нового магазину банк
+              розглядає заявку на підключення кожної розстрочки до 2 тижнів — вмикайте перемикач нижче,
+              лише коли WayForPay підтвердить активацію в особистому кабінеті.
             </div>
             <div className="grid grid-cols-1 gap-3 mb-3">
               <div>
@@ -189,11 +166,11 @@ function SettingsPanel() {
               </div>
             </div>
             <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
-              <span className="text-sm text-[#20303C]">Оплата карткою (WayForPay)</span>
-              <Toggle on={settings.wayforpay_enabled} onChange={(v) => setSettings({ ...settings, wayforpay_enabled: v })} />
+              <span className="text-sm text-[#20303C]">А-Банк — Оплата частинами (payPartsAbank)</span>
+              <Toggle on={settings.abank_enabled} onChange={(v) => setSettings({ ...settings, abank_enabled: v })} />
             </div>
             <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
-              <span className="text-sm text-[#20303C]">Оплата частинами від ПриватБанку (через WayForPay)</span>
+              <span className="text-sm text-[#20303C]">ПриватБанк — Оплата частинами (payPartsPrivat)</span>
               <Toggle on={settings.privat_wfp_enabled} onChange={(v) => setSettings({ ...settings, privat_wfp_enabled: v })} />
             </div>
           </div>
@@ -246,6 +223,7 @@ function SettingsPanel() {
 function NewLinkForm({ onCreated }: { onCreated: () => void }) {
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
+  const [gateway, setGateway] = useState<Gateway | ''>('');
   const [phone, setPhone] = useState('');
   const [paymentsNumber, setPaymentsNumber] = useState('');
   const [saving, setSaving] = useState(false);
@@ -256,7 +234,11 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
       alert('Вкажіть назву і ціну');
       return;
     }
-    if (phone.trim() && !/^\+380\d{9}$/.test(phone.trim())) {
+    if (!gateway) {
+      alert('Оберіть банк, через який клієнт оформить розстрочку');
+      return;
+    }
+    if (gateway === 'monobank' && phone.trim() && !/^\+380\d{9}$/.test(phone.trim())) {
       alert('Телефон має бути у форматі +380XXXXXXXXX (або залиште поле порожнім)');
       return;
     }
@@ -266,8 +248,9 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
       slug,
       title: title.trim(),
       price_uah: Number(price),
-      client_phone: phone.trim() || null,
-      payments_number: paymentsNumber ? Number(paymentsNumber) : null,
+      gateway,
+      client_phone: gateway === 'monobank' ? phone.trim() || null : null,
+      payments_number: gateway === 'monobank' && paymentsNumber ? Number(paymentsNumber) : null,
     });
     setSaving(false);
     if (error) {
@@ -277,6 +260,7 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
     setLastUrl(`${CREDIT_SITE_URL}/l/${slug}`);
     setTitle('');
     setPrice('');
+    setGateway('');
     setPhone('');
     setPaymentsNumber('');
     onCreated();
@@ -300,28 +284,52 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
           placeholder="Ціна, грн"
           className="border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
         />
-        <input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="Телефон клієнта, +380XXXXXXXXX (обов'язково для Monobank, можна лишити порожнім і ввести на сторінці оплати)"
-          className="border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
-        />
         <div>
-          <input
-            type="number"
-            min={3}
-            max={25}
-            value={paymentsNumber}
-            onChange={(e) => setPaymentsNumber(e.target.value)}
-            placeholder="Кількість платежів (орієнтовно, 3-25)"
-            className="w-full border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
-          />
-          <p className="text-xs text-[#8893A2] mt-1">
-            Поки лише інформаційно для клієнта — Monobank не підтвердив публічно, чи приймає цей параметр
-            у запиті, чи кількість платежів фіксована окремо для нашого store-id. Остаточно клієнт обирає
-            кількість на стороні банку.
-          </p>
+          <label className="text-xs font-bold text-[#546070] mb-1.5 block">
+            Банк — клієнт одразу потрапить саме в цей потік оплати, без вибору на checkout
+          </label>
+          <select
+            value={gateway}
+            onChange={(e) => setGateway(e.target.value as Gateway | '')}
+            className="w-full border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8] bg-white"
+          >
+            <option value="">— Оберіть банк —</option>
+            {(Object.keys(GATEWAY_LABEL) as Gateway[]).map((g) => (
+              <option key={g} value={g}>{GATEWAY_LABEL[g]}</option>
+            ))}
+          </select>
         </div>
+        {gateway === 'monobank' && (
+          <>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Телефон клієнта, +380XXXXXXXXX (обов'язково для Monobank, можна лишити порожнім і ввести на сторінці оплати)"
+              className="border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+            />
+            <div>
+              <input
+                type="number"
+                min={3}
+                max={25}
+                value={paymentsNumber}
+                onChange={(e) => setPaymentsNumber(e.target.value)}
+                placeholder="Кількість платежів (орієнтовно, 3-25)"
+                className="w-full border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+              />
+              <p className="text-xs text-[#8893A2] mt-1">
+                Поки лише інформаційно для клієнта — Monobank не підтвердив публічно, чи приймає цей параметр
+                у запиті, чи кількість платежів фіксована окремо для нашого store-id. Остаточно клієнт обирає
+                кількість на стороні банку.
+              </p>
+            </div>
+          </>
+        )}
+        {(gateway === 'abank' || gateway === 'privat') && (
+          <p className="text-xs text-[#8893A2]">
+            Кількість платежів (2–12) клієнт обере вже на сторінці WayForPay — тут вказувати нічого не треба.
+          </p>
+        )}
         <button
           onClick={handleCreate}
           disabled={saving}
@@ -350,7 +358,7 @@ interface CreditPayment {
   id: string;
   title: string;
   amount: number;
-  gateway: 'monobank' | 'abank' | 'wayforpay' | 'privat';
+  gateway: Gateway;
   status: 'pending' | 'paid' | 'failed';
   gateway_state: string | null;
   client_phone: string | null;
@@ -524,6 +532,7 @@ export default function CreditPage() {
             <thead>
               <tr className="text-left text-[#8893A2] text-xs uppercase tracking-widest border-b border-[#E8EDF4]">
                 <th className="px-5 py-3 font-bold">Назва</th>
+                <th className="px-5 py-3 font-bold">Банк</th>
                 <th className="px-5 py-3 font-bold">Ціна</th>
                 <th className="px-5 py-3 font-bold">Створено</th>
                 <th className="px-5 py-3 font-bold">Статус</th>
@@ -534,6 +543,7 @@ export default function CreditPage() {
               {links.map((l) => (
                 <tr key={l.id} className="border-b border-[#E8EDF4] last:border-0">
                   <td className="px-5 py-4 text-[#20303C] font-semibold">{l.title}</td>
+                  <td className="px-5 py-4 text-[#546070] text-xs">{l.gateway ? GATEWAY_LABEL[l.gateway].split(' — ')[0] : '—'}</td>
                   <td className="px-5 py-4 text-[#546070]">{Number(l.price_uah).toLocaleString('uk-UA')} ₴</td>
                   <td className="px-5 py-4 text-[#546070]">{formatDate(l.created_at)}</td>
                   <td className="px-5 py-4">
