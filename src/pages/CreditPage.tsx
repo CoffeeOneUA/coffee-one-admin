@@ -14,6 +14,7 @@ interface CreditSettings {
   monobank_sign_key: string | null;
   abank_enabled: boolean;
   privat_wfp_enabled: boolean;
+  privat_instant_enabled: boolean;
   wayforpay_merchant_account: string | null;
   wayforpay_secret_key: string | null;
   wayforpay_domain: string | null;
@@ -22,12 +23,13 @@ interface CreditSettings {
   salesdrive_api_key: string | null;
 }
 
-type Gateway = 'monobank' | 'abank' | 'privat';
+type Gateway = 'monobank' | 'abank' | 'privat' | 'privat_instant';
 
 const GATEWAY_LABEL: Record<Gateway, string> = {
   monobank: 'Monobank — Покупка частинами',
   abank: 'А-Банк — Оплата частинами (через WayForPay)',
   privat: 'ПриватБанк — Оплата частинами (через WayForPay)',
+  privat_instant: 'ПриватБанк — Миттєва розстрочка (через WayForPay)',
 };
 
 interface CreditLink {
@@ -172,6 +174,10 @@ function SettingsPanel() {
             <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
               <span className="text-sm text-[#20303C]">ПриватБанк — Оплата частинами (payPartsPrivat)</span>
               <Toggle on={settings.privat_wfp_enabled} onChange={(v) => setSettings({ ...settings, privat_wfp_enabled: v })} />
+            </div>
+            <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
+              <span className="text-sm text-[#20303C]">ПриватБанк — Миттєва розстрочка (payParts)</span>
+              <Toggle on={settings.privat_instant_enabled} onChange={(v) => setSettings({ ...settings, privat_instant_enabled: v })} />
             </div>
           </div>
 
@@ -325,7 +331,7 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
             </div>
           </>
         )}
-        {(gateway === 'abank' || gateway === 'privat') && (
+        {(gateway === 'abank' || gateway === 'privat' || gateway === 'privat_instant') && (
           <p className="text-xs text-[#8893A2]">
             Кількість платежів (2–12) клієнт обере вже на сторінці WayForPay — тут вказувати нічого не треба.
           </p>
