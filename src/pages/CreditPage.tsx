@@ -13,11 +13,13 @@ interface CreditSettings {
   monobank_store_id: string | null;
   monobank_sign_key: string | null;
   abank_enabled: boolean;
-  privat_wfp_enabled: boolean;
   privat_instant_enabled: boolean;
   wayforpay_merchant_account: string | null;
   wayforpay_secret_key: string | null;
   wayforpay_domain: string | null;
+  privat_enabled: boolean;
+  privat_store_id: string | null;
+  privat_password: string | null;
   salesdrive_enabled: boolean;
   salesdrive_base_url: string | null;
   salesdrive_api_key: string | null;
@@ -28,7 +30,7 @@ type Gateway = 'monobank' | 'abank' | 'privat' | 'privat_instant';
 const GATEWAY_LABEL: Record<Gateway, string> = {
   monobank: 'Monobank — Покупка частинами',
   abank: 'А-Банк — Оплата частинами (через WayForPay)',
-  privat: 'ПриватБанк — Оплата частинами (через WayForPay)',
+  privat: 'ПриватБанк — Оплата частинами (пряма інтеграція)',
   privat_instant: 'ПриватБанк — Миттєва розстрочка (через WayForPay)',
 };
 
@@ -130,14 +132,14 @@ function SettingsPanel() {
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-[#20303C]">WayForPay — розстрочки від А-Банку і ПриватБанку</span>
+              <span className="text-sm font-semibold text-[#20303C]">WayForPay — розстрочки від А-Банку і ПриватБанку (Миттєва)</span>
             </div>
             <div className="bg-amber-50 text-amber-800 text-xs rounded-xl p-3 mb-3">
               Один мерчант-акаунт WayForPay обслуговує лише два способи оплати нижче — "PayParts"
-              (payPartsAbank / payPartsPrivat): кількість платежів (2–12) клієнт обирає вже на сторінці
-              WayForPay. Звичайної оплати карткою через цей акаунт немає. Для нового магазину банк
-              розглядає заявку на підключення кожної розстрочки до 2 тижнів — вмикайте перемикач нижче,
-              лише коли WayForPay підтвердить активацію в особистому кабінеті.
+              (payPartsAbank / payParts): кількість платежів клієнт обирає вже на сторінці WayForPay.
+              Звичайної оплати карткою через цей акаунт немає. Для нового магазину банк розглядає заявку
+              на підключення кожної розстрочки до 2 тижнів — вмикайте перемикач нижче, лише коли WayForPay
+              підтвердить активацію в особистому кабінеті.
             </div>
             <div className="grid grid-cols-1 gap-3 mb-3">
               <div>
@@ -172,12 +174,38 @@ function SettingsPanel() {
               <Toggle on={settings.abank_enabled} onChange={(v) => setSettings({ ...settings, abank_enabled: v })} />
             </div>
             <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
-              <span className="text-sm text-[#20303C]">ПриватБанк — Оплата частинами (payPartsPrivat)</span>
-              <Toggle on={settings.privat_wfp_enabled} onChange={(v) => setSettings({ ...settings, privat_wfp_enabled: v })} />
-            </div>
-            <div className="flex items-center justify-between py-2 border-t border-[#E8EDF4]">
               <span className="text-sm text-[#20303C]">ПриватБанк — Миттєва розстрочка (payParts)</span>
               <Toggle on={settings.privat_instant_enabled} onChange={(v) => setSettings({ ...settings, privat_instant_enabled: v })} />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-[#20303C]">ПриватБанк — Оплата частинами (пряма інтеграція)</span>
+              <Toggle on={settings.privat_enabled} onChange={(v) => setSettings({ ...settings, privat_enabled: v })} />
+            </div>
+            <div className="bg-amber-50 text-amber-800 text-xs rounded-xl p-3 mb-3">
+              Окрема пряма інтеграція з API ПриватБанку (payparts2.privatbank.ua), без WayForPay —
+              свій ідентифікатор магазину (storeId) і пароль із особистого кабінету "Оплата частинами".
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Ідентифікатор магазину (storeId)</label>
+                <input
+                  value={settings.privat_store_id ?? ''}
+                  onChange={(e) => setSettings({ ...settings, privat_store_id: e.target.value })}
+                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#546070] mb-1.5 block">Пароль магазину</label>
+                <input
+                  type="password"
+                  value={settings.privat_password ?? ''}
+                  onChange={(e) => setSettings({ ...settings, privat_password: e.target.value })}
+                  className="w-full border border-[#D7DFEA] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+                />
+              </div>
             </div>
           </div>
 
@@ -248,6 +276,10 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
       alert('Телефон має бути у форматі +380XXXXXXXXX (або залиште поле порожнім)');
       return;
     }
+    if (gateway === 'privat' && (!paymentsNumber || Number(paymentsNumber) < 2 || Number(paymentsNumber) > 25)) {
+      alert('Вкажіть кількість платежів (2–25) — пряма інтеграція ПриватБанку вимагає її одразу при створенні');
+      return;
+    }
     setSaving(true);
     const slug = genSlug();
     const { error } = await supabase.from('credit_links').insert({
@@ -256,7 +288,7 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
       price_uah: Number(price),
       gateway,
       client_phone: gateway === 'monobank' ? phone.trim() || null : null,
-      payments_number: gateway === 'monobank' && paymentsNumber ? Number(paymentsNumber) : null,
+      payments_number: (gateway === 'monobank' || gateway === 'privat') && paymentsNumber ? Number(paymentsNumber) : null,
     });
     setSaving(false);
     if (error) {
@@ -331,9 +363,26 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
             </div>
           </>
         )}
-        {(gateway === 'abank' || gateway === 'privat' || gateway === 'privat_instant') && (
+        {gateway === 'privat' && (
+          <div>
+            <input
+              type="number"
+              min={2}
+              max={25}
+              value={paymentsNumber}
+              onChange={(e) => setPaymentsNumber(e.target.value)}
+              placeholder="Кількість платежів (2–25, обов'язково)"
+              className="w-full border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
+            />
+            <p className="text-xs text-[#8893A2] mt-1">
+              Пряма інтеграція ПриватБанку вимагає кількість платежів одразу при створенні — клієнт
+              не обирає її сам на сторінці оплати.
+            </p>
+          </div>
+        )}
+        {(gateway === 'abank' || gateway === 'privat_instant') && (
           <p className="text-xs text-[#8893A2]">
-            Кількість платежів (2–12) клієнт обере вже на сторінці WayForPay — тут вказувати нічого не треба.
+            Кількість платежів клієнт обере вже на сторінці WayForPay — тут вказувати нічого не треба.
           </p>
         )}
         <button
