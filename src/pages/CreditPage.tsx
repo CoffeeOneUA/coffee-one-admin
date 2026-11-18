@@ -276,8 +276,8 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
       alert('Телефон має бути у форматі +380XXXXXXXXX (або залиште поле порожнім)');
       return;
     }
-    if (gateway === 'privat' && (!paymentsNumber || Number(paymentsNumber) < 2 || Number(paymentsNumber) > 25)) {
-      alert('Вкажіть кількість платежів (2–25) — пряма інтеграція ПриватБанку вимагає її одразу при створенні');
+    if (gateway === 'privat' && (!paymentsNumber || Number(paymentsNumber) < 3 || Number(paymentsNumber) > 5)) {
+      alert('Вкажіть кількість платежів (3–5) — пряма інтеграція ПриватБанку вимагає її одразу при створенні');
       return;
     }
     setSaving(true);
@@ -367,11 +367,11 @@ function NewLinkForm({ onCreated }: { onCreated: () => void }) {
           <div>
             <input
               type="number"
-              min={2}
-              max={25}
+              min={3}
+              max={5}
               value={paymentsNumber}
               onChange={(e) => setPaymentsNumber(e.target.value)}
-              placeholder="Кількість платежів (2–25, обов'язково)"
+              placeholder="Кількість платежів (3–5, обов'язково)"
               className="w-full border border-[#E8EDF4] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#187FD8]"
             />
             <p className="text-xs text-[#8893A2] mt-1">
