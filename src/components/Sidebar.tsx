@@ -15,7 +15,6 @@ interface NavItem {
   path: string;
   icon: IconName;
   label: string;
-  badge?: boolean;
 }
 
 // Ті самі 24 пункти й маршрути, що були — лише згруповані за змістом
@@ -28,7 +27,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: 'Контент і довідники',
     items: [
-      { path: '/moderation', icon: 'shield', label: 'Модерація', badge: true },
+      { path: '/moderation', icon: 'shield', label: 'Модерація' },
       { path: '/content', icon: 'document', label: 'Контент' },
       { path: '/cities', icon: 'pin', label: 'Міста' },
       { path: '/categories', icon: 'grid', label: 'Категорії' },
@@ -138,6 +137,37 @@ function useMaintenanceBadge() {
   return count;
 }
 
+// Живий лічильник оголошень "на модерації" — те саме, що бачить
+// ModerationPage (listings.status = 'pending').
+function useModerationBadge() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchCount() {
+      const { count: pending } = await supabase
+        .from('listings')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      if (mounted) setCount(pending ?? 0);
+    }
+    fetchCount();
+
+    const channel = supabase
+      .channel('listings_moderation_admin_badge')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, () => fetchCount())
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  return count;
+}
+
 interface SidebarProps {
   mobileOpen: boolean;
   onCloseMobile: () => void;
@@ -145,6 +175,7 @@ interface SidebarProps {
 
 export default function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
   const maintenanceBadge = useMaintenanceBadge();
+  const moderationBadge = useModerationBadge();
   const { admin, signOut } = useAuth();
 
   const groups =
@@ -209,9 +240,9 @@ export default function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
                 >
                   <Icon name={item.icon} size={17} />
                   <span className="flex-1">{item.label}</span>
-                  {item.badge && (
+                  {item.path === '/moderation' && moderationBadge > 0 && (
                     <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                      !
+                      {moderationBadge}
                     </span>
                   )}
                   {item.path === '/maintenance' && maintenanceBadge > 0 && (
